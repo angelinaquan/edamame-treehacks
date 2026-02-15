@@ -18,28 +18,15 @@ import type {
 
 export const ALL_TEAMS = [
   "Engineering",
-  "Sales",
-  "Customer Success",
-  "Product",
-  "Design",
-  "Marketing",
-  "Operations",
+  "Product & Frontend",
+  "ML Infrastructure",
 ];
 
 export const employees: Employee[] = [
-  { id: "e1", name: "Marcus Chen", role: "Senior Engineer", team: "Engineering", tenure: "4 years", initials: "MC" },
-  { id: "e2", name: "Priya Sharma", role: "Software Engineer", team: "Engineering", tenure: "2 years", initials: "PS" },
-  { id: "e3", name: "David Kim", role: "Staff Engineer", team: "Engineering", tenure: "5 years", initials: "DK" },
-  { id: "e4", name: "Rachel Torres", role: "Account Executive", team: "Sales", tenure: "3 years", initials: "RT" },
-  { id: "e5", name: "James Liu", role: "Sales Director", team: "Sales", tenure: "4 years", initials: "JL" },
-  { id: "e6", name: "Nina Patel", role: "SDR Lead", team: "Sales", tenure: "1 year", initials: "NP" },
-  { id: "e7", name: "Sofia Martinez", role: "CS Lead", team: "Customer Success", tenure: "3 years", initials: "SM" },
-  { id: "e8", name: "Tom Bradley", role: "CS Manager", team: "Customer Success", tenure: "2 years", initials: "TB" },
-  { id: "e9", name: "Emma Walsh", role: "Product Manager", team: "Product", tenure: "3 years", initials: "EW" },
-  { id: "e10", name: "Alex Novak", role: "Product Lead", team: "Product", tenure: "4 years", initials: "AN" },
-  { id: "e11", name: "Kai Tanaka", role: "Lead Designer", team: "Design", tenure: "2 years", initials: "KT" },
-  { id: "e12", name: "Lisa Park", role: "Marketing Director", team: "Marketing", tenure: "3 years", initials: "LP" },
-  { id: "e13", name: "Ryan O'Brien", role: "Ops Manager", team: "Operations", tenure: "2 years", initials: "RO" },
+  { id: "e1", name: "James Liu", role: "ML & Backend Lead", team: "Engineering", tenure: "", initials: "JL" },
+  { id: "e2", name: "Ella Lan", role: "Full-Stack Engineer", team: "Engineering", tenure: "", initials: "EL" },
+  { id: "e3", name: "Angelina Quan", role: "Product & Frontend", team: "Product & Frontend", tenure: "", initials: "AQ" },
+  { id: "e4", name: "Videet Mehta", role: "ML Infrastructure", team: "ML Infrastructure", tenure: "", initials: "VM" },
 ];
 
 // ============================================

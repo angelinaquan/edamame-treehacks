@@ -1,17 +1,13 @@
 /**
- * Edamame — Backend-agnostic data access layer.
+ * Edamame — Backend data access layer.
  *
  * Calls real API routes (/api/orgpulse/*) for data from Supabase.
- * Falls back to mock data when the backend has no data or errors.
- *
- * Mock "streaming" is implemented with async generators that the UI
- * consumes with `for await (const event of stream)`.
+ * No mock fallbacks — requires a working backend.
  */
 
 import type {
   InsightEvent,
   InsightsFilters,
-  QueryPlan,
   OnboardingBrief,
   MemoryItem,
   HandoffPack,
@@ -20,20 +16,6 @@ import type {
   Citation,
   Employee,
 } from "./types";
-import {
-  ALL_TEAMS,
-  employees,
-  getResponsesForQuery,
-  computeAggregation,
-  onboardingBriefs,
-  memoryItems as mockMemoryItems,
-  handoffPacks,
-  offboardingEmployees,
-  onboardingOptions,
-  cloneProfiles as mockCloneProfiles,
-  cloneResponses,
-  cloneFallbackResponses,
-} from "./mock-data";
 
 // ---- Helpers ----
 
@@ -41,16 +23,8 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function seededRandom(seed: number): () => number {
-  let s = seed;
-  return () => {
-    s = (s * 16807) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-}
-
 // ============================================
-// INSIGHTS — Streaming query (REAL API with mock fallback)
+// INSIGHTS — Streaming query
 // ============================================
 
 export async function* streamInsightsQuery(
@@ -58,163 +32,76 @@ export async function* streamInsightsQuery(
   filters: InsightsFilters,
   signal?: AbortSignal
 ): AsyncGenerator<InsightEvent> {
-  // Try real API first
-  try {
-    const res = await fetch("/api/orgpulse/insights", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: query, filters }),
-      signal,
-    });
+  const res = await fetch("/api/orgpulse/insights", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question: query, filters }),
+    signal,
+  });
 
-    if (res.ok && res.body) {
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+  if (!res.ok || !res.body) {
+    yield { type: "stage", stage: "complete", message: "Analysis failed. Check backend connection." };
+    return;
+  }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
 
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const event = JSON.parse(line.slice(6));
-            if (event.type === "stage") {
-              yield {
-                type: "stage",
-                stage: event.stage,
-                message: event.message,
-              };
-            } else if (event.type === "plan") {
-              // Capture availableTeams from the API response if present
-              if (event.plan?.availableTeams) {
-                _cachedAvailableTeams = event.plan.availableTeams;
-              }
-              yield { type: "plan", plan: event.plan };
-            } else if (event.type === "employee_response") {
-              yield {
-                type: "employee_response",
-                response: event.response,
-              };
-            } else if (event.type === "aggregation") {
-              // Capture availableTeams from aggregation if present
-              if (event.data?.availableTeams) {
-                _cachedAvailableTeams = event.data.availableTeams;
-              }
-              yield { type: "aggregation", data: event.data };
-            } else if (event.type === "error") {
-              throw new Error(event.message);
-            }
-          } catch (parseErr) {
-            if (parseErr instanceof Error && parseErr.message) {
-              throw parseErr;
-            }
-            // skip malformed lines
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      try {
+        const event = JSON.parse(line.slice(6));
+        if (event.type === "stage") {
+          yield { type: "stage", stage: event.stage, message: event.message };
+        } else if (event.type === "plan") {
+          if (event.plan?.availableTeams) {
+            _cachedAvailableTeams = event.plan.availableTeams;
           }
+          yield { type: "plan", plan: event.plan };
+        } else if (event.type === "employee_response") {
+          yield { type: "employee_response", response: event.response };
+        } else if (event.type === "aggregation") {
+          if (event.data?.availableTeams) {
+            _cachedAvailableTeams = event.data.availableTeams;
+          }
+          yield { type: "aggregation", data: event.data };
+        } else if (event.type === "error") {
+          throw new Error(event.message);
+        }
+      } catch (parseErr) {
+        if (parseErr instanceof Error && parseErr.message) {
+          throw parseErr;
         }
       }
-      return;
     }
-    // Non-OK response — fall through to mock
-  } catch (err) {
-    if (signal?.aborted) return;
-    // Fall through to mock
   }
-
-  // ---- Mock fallback ----
-  yield* streamInsightsQueryMock(query, filters, signal);
-}
-
-async function* streamInsightsQueryMock(
-  query: string,
-  filters: InsightsFilters,
-  signal?: AbortSignal
-): AsyncGenerator<InsightEvent> {
-  const rng = seededRandom(42);
-
-  yield {
-    type: "stage",
-    stage: "planning",
-    message: "Analyzing your question and identifying relevant employees…",
-  };
-  await delay(1200);
-  if (signal?.aborted) return;
-
-  const targetTeams =
-    filters.teams.length > 0 ? filters.teams : [...ALL_TEAMS];
-  const targetEmployees = employees.filter(
-    (e) => filters.teams.length === 0 || filters.teams.includes(e.team)
-  );
-
-  const plan: QueryPlan = {
-    question: query,
-    targetTeams,
-    estimatedResponses: targetEmployees.length,
-    steps: [
-      `Identify ${targetEmployees.length} relevant employees across ${targetTeams.length} teams`,
-      "Query each employee's digital twin in parallel",
-      "Aggregate stances and extract common themes",
-      "Compute confidence intervals and surface evidence",
-    ],
-  };
-
-  yield { type: "plan", plan };
-  await delay(600);
-  if (signal?.aborted) return;
-
-  yield {
-    type: "stage",
-    stage: "querying",
-    message: `Querying ${targetEmployees.length} employee digital twins…`,
-  };
-  await delay(400);
-
-  const responses = getResponsesForQuery(query, filters);
-  for (const response of responses) {
-    if (signal?.aborted) return;
-    const d = 280 + Math.floor(rng() * 200);
-    await delay(d);
-    yield { type: "employee_response", response };
-  }
-
-  await delay(600);
-  if (signal?.aborted) return;
-
-  yield {
-    type: "stage",
-    stage: "aggregating",
-    message: "Identifying patterns and synthesizing insights…",
-  };
-  await delay(1000);
-
-  const aggregation = computeAggregation(responses, filters);
-  yield { type: "aggregation", data: aggregation };
-
-  await delay(300);
-  yield { type: "stage", stage: "complete", message: "Analysis complete." };
 }
 
 // ============================================
-// INSIGHTS — Available teams (from real API or mock fallback)
+// INSIGHTS — Available teams
 // ============================================
 
 let _cachedAvailableTeams: string[] | null = null;
 
 /**
  * Returns available teams for the insights filter UI.
- * Uses teams from the last real API response, or falls back to ALL_TEAMS from mock data.
+ * Uses teams from the last real API response.
  */
 export function getAvailableTeams(): string[] {
-  return _cachedAvailableTeams ?? ALL_TEAMS;
+  return _cachedAvailableTeams ?? [];
 }
 
 // ============================================
-// KNOWLEDGE — Onboarding (REAL DATA from Supabase with mock fallback)
+// KNOWLEDGE — Onboarding
 // ============================================
 
 let _cachedOnboardingOptions: { role: string; team: string }[] | null = null;
@@ -231,42 +118,32 @@ export async function fetchOnboardingOptions(): Promise<
       return data.options;
     }
   } catch {
-    // fall through
+    // API unavailable
   }
-  _cachedOnboardingOptions = onboardingOptions;
-  return onboardingOptions;
+  return _cachedOnboardingOptions ?? [];
 }
 
 export function getOnboardingOptions() {
-  return _cachedOnboardingOptions ?? onboardingOptions;
+  return _cachedOnboardingOptions ?? [];
 }
 
 export async function generateOnboardingBrief(
   role: string,
   team: string
 ): Promise<OnboardingBrief> {
-  try {
-    const res = await fetch("/api/orgpulse/onboarding", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role, team }),
-    });
-    if (!res.ok) throw new Error("API error");
-    const data = await res.json();
-    if (data.brief) return data.brief as OnboardingBrief;
-  } catch {
-    // fall through
-  }
-  // Mock fallback
-  await delay(500);
-  const key = `${role}-${team}`;
-  return (
-    onboardingBriefs[key] ?? onboardingBriefs["Senior Product Manager-AI Platform"]
-  );
+  const res = await fetch("/api/orgpulse/onboarding", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role, team }),
+  });
+  if (!res.ok) throw new Error("Failed to generate onboarding brief");
+  const data = await res.json();
+  if (data.brief) return data.brief as OnboardingBrief;
+  throw new Error("No brief returned");
 }
 
 // ============================================
-// KNOWLEDGE — Memory Explorer (REAL DATA from Supabase)
+// KNOWLEDGE — Memory Explorer
 // ============================================
 
 export async function searchMemories(
@@ -283,44 +160,14 @@ export async function searchMemories(
 
     const data = await res.json();
     const items = data.items as MemoryItem[];
-
-    // If backend returned real data, use it
-    if (items && items.length > 0) {
-      return items;
-    }
-
-    // Fall back to mock data
-    return searchMemoriesMock(query, typeFilter);
+    return items ?? [];
   } catch {
-    // Backend unavailable — fall back to mock
-    return searchMemoriesMock(query, typeFilter);
+    return [];
   }
-}
-
-function searchMemoriesMock(
-  query: string,
-  typeFilter?: MemoryType | "all"
-): MemoryItem[] {
-  const q = query.toLowerCase();
-  let results = mockMemoryItems;
-  if (typeFilter && typeFilter !== "all") {
-    results = results.filter((m) => m.type === typeFilter);
-  }
-  if (q.length > 0) {
-    results = results.filter(
-      (m) =>
-        m.title.toLowerCase().includes(q) ||
-        m.content.toLowerCase().includes(q) ||
-        m.tags.some((t) => t.toLowerCase().includes(q))
-    );
-  }
-  return results.sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
 }
 
 // ============================================
-// KNOWLEDGE — Offboarding (REAL DATA from Supabase with mock fallback)
+// KNOWLEDGE — Offboarding
 // ============================================
 
 let _cachedOffboardingEmployees: Employee[] | null = null;
@@ -335,14 +182,13 @@ export async function fetchOffboardingEmployees(): Promise<Employee[]> {
       return data.employees;
     }
   } catch {
-    // fall through
+    // API unavailable
   }
-  _cachedOffboardingEmployees = offboardingEmployees;
-  return offboardingEmployees;
+  return _cachedOffboardingEmployees ?? [];
 }
 
 export function getOffboardingEmployees() {
-  return _cachedOffboardingEmployees ?? offboardingEmployees;
+  return _cachedOffboardingEmployees ?? [];
 }
 
 export async function generateHandoffPack(
@@ -358,26 +204,23 @@ export async function generateHandoffPack(
     const data = await res.json();
     if (data.pack) return data.pack as HandoffPack;
   } catch {
-    // fall through
+    // API unavailable
   }
-  // Mock fallback
-  await delay(500);
-  return handoffPacks[employeeId] ?? null;
+  return null;
 }
 
 // ============================================
-// AGENT CLONES — Profiles (REAL DATA from Supabase with mock fallback)
+// AGENT CLONES — Profiles
 // ============================================
 
 let _cachedProfiles: CloneProfile[] | null = null;
 
 export function getCloneProfiles(): CloneProfile[] {
-  // Return cached if available (populated by fetchCloneProfiles)
-  return _cachedProfiles ?? mockCloneProfiles;
+  return _cachedProfiles ?? [];
 }
 
 /**
- * Async fetch that tries the real API first.
+ * Async fetch that tries the real API.
  * Call this once on mount; getCloneProfiles() returns the cached result.
  */
 export async function fetchCloneProfiles(): Promise<CloneProfile[]> {
@@ -391,14 +234,13 @@ export async function fetchCloneProfiles(): Promise<CloneProfile[]> {
       return profiles;
     }
   } catch {
-    // fall through
+    // API unavailable
   }
-  _cachedProfiles = mockCloneProfiles;
-  return mockCloneProfiles;
+  return _cachedProfiles ?? [];
 }
 
 // ============================================
-// AGENT CLONES — Chat (REAL OpenAI RAG with mock fallback)
+// AGENT CLONES — Chat
 // ============================================
 
 export async function* streamCloneChat(
@@ -412,106 +254,51 @@ export async function* streamCloneChat(
   | { type: "learning"; learning: { factsExtracted: number; factsSaved: number; factsReinforced: number } }
   | { type: "done" }
 > {
-  // Try real API first
-  try {
-    const res = await fetch("/api/orgpulse/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cloneId: employeeId, question, history }),
-      signal,
-    });
+  const res = await fetch("/api/orgpulse/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cloneId: employeeId, question, history }),
+    signal,
+  });
 
-    if (res.ok && res.body) {
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+  if (!res.ok || !res.body) {
+    yield { type: "chunk", text: "Failed to connect to clone. Please check your backend connection." };
+    yield { type: "done" };
+    return;
+  }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
 
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const event = JSON.parse(line.slice(6));
-            if (event.type === "chunk") {
-              yield { type: "chunk", text: event.text };
-            } else if (event.type === "citations") {
-              yield { type: "citations", citations: event.citations };
-            } else if (event.type === "learning") {
-              yield { type: "learning", learning: event.learning };
-            } else if (event.type === "done") {
-              yield { type: "done" };
-              return;
-            } else if (event.type === "error") {
-              throw new Error(event.message);
-            }
-          } catch {
-            // skip malformed lines
-          }
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      try {
+        const event = JSON.parse(line.slice(6));
+        if (event.type === "chunk") {
+          yield { type: "chunk", text: event.text };
+        } else if (event.type === "citations") {
+          yield { type: "citations", citations: event.citations };
+        } else if (event.type === "learning") {
+          yield { type: "learning", learning: event.learning };
+        } else if (event.type === "done") {
+          yield { type: "done" };
+          return;
+        } else if (event.type === "error") {
+          throw new Error(event.message);
         }
+      } catch {
+        // skip malformed lines
       }
-      yield { type: "done" };
-      return;
     }
-    // Non-OK response — fall through to mock
-  } catch (err) {
-    if (signal?.aborted) return;
-    // Fall through to mock
   }
-
-  // ---- Mock fallback ----
-  yield* streamCloneChatMock(employeeId, question, signal);
-}
-
-async function* streamCloneChatMock(
-  employeeId: string,
-  question: string,
-  signal?: AbortSignal
-): AsyncGenerator<
-  | { type: "chunk"; text: string }
-  | { type: "citations"; citations: Citation[] }
-  | { type: "done" }
-> {
-  const { response, citations } = matchCloneResponse(employeeId, question);
-
-  await delay(600 + Math.random() * 400);
-  if (signal?.aborted) return;
-
-  const words = response.split(" ");
-  for (let i = 0; i < words.length; i++) {
-    if (signal?.aborted) return;
-    await delay(20 + Math.random() * 30);
-    yield { type: "chunk", text: words[i] + (i < words.length - 1 ? " " : "") };
-  }
-
-  if (citations.length > 0) {
-    await delay(200);
-    yield { type: "citations", citations };
-  }
-
   yield { type: "done" };
-}
-
-function matchCloneResponse(
-  employeeId: string,
-  question: string
-): { response: string; citations: Citation[] } {
-  const responses = cloneResponses[employeeId];
-  if (responses) {
-    const q = question.toLowerCase();
-    for (const entry of responses) {
-      if (entry.keywords.some((kw) => q.includes(kw))) {
-        return { response: entry.response, citations: entry.citations };
-      }
-    }
-  }
-  const fallback =
-    cloneFallbackResponses[employeeId] ??
-    "That's a great question. Let me think about it from my perspective and experience. Could you be more specific about what aspect you'd like me to address?";
-  return { response: fallback, citations: [] };
 }
