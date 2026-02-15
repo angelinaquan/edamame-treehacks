@@ -19,155 +19,268 @@ interface GdriveGeneratorParams {
   endIso: string;
 }
 
-function buildNormalDoc(
-  project: SyntheticProject,
-  owner: string,
-  rng: SeededRng
-): { title: string; content: string; mime: string } {
-  const templates = [
-    {
-      title: `${project.name} - Status Report`,
-      content: `${project.name} Weekly Status Report
-
-Prepared by: ${owner}
-Week of: Sprint ${rng.int(12, 18)}
-
-Summary:
-Project is on track for ${project.target_date}. Key milestones progressing as planned.
-
-Metrics:
-- Velocity: ${rng.int(28, 45)} story points
-- Bug count: ${rng.int(3, 12)} open, ${rng.int(8, 25)} resolved
-- Test coverage: ${rng.int(78, 92)}%
-
-Risks:
-- Dependency on third-party API (medium risk)
-- Two team members on PTO next week (low risk)
-
-Next Week:
-- Complete integration testing
-- Begin UAT preparation
-- Stakeholder demo on Friday`,
-      mime: "application/vnd.google-apps.document",
-    },
-    {
-      title: `${project.name} - Budget Tracker`,
-      content: `${project.name} Budget Summary
-
-Total Budget: $${rng.int(200, 800)}K
-Spent to Date: $${rng.int(100, 400)}K (${rng.int(40, 70)}%)
-Remaining: $${rng.int(100, 400)}K
-
-Breakdown:
-- Engineering: $${rng.int(80, 250)}K
-- Infrastructure: $${rng.int(20, 80)}K
-- Contractors: $${rng.int(15, 60)}K
-- Tools/Licenses: $${rng.int(5, 20)}K
-
-Status: Within budget. On track for ${project.target_date}.`,
-      mime: "application/vnd.google-apps.spreadsheet",
-    },
-  ];
-  return rng.pick(templates);
-}
-
-function buildSpicyDoc(
+function buildDoc(
   project: SyntheticProject,
   world: SyntheticWorld,
   owner: string,
   rng: SeededRng
 ): { title: string; content: string; mime: string } {
-  const conflict = rng.pick(world.conflicts);
-  const antagonist = rng.pick(world.people.filter(p => p.name !== owner));
-  const bystander = rng.pick(world.people.filter(p => p.name !== owner && p.name !== antagonist.name));
+  if (project.phase === "early") {
+    const templates = [
+      {
+        title: "Ambient Listening AI - PRD (Draft)",
+        content: `Ambient Listening AI - Product Requirements
+TreeHacks 2026
 
+Team: ${world.people.map((p) => p.name).join(", ")}
+
+Problem: People lose critical context from conversations. Meetings, hallway chats, brainstorms -- most of it is forgotten within hours.
+
+Solution: An always-on AI listener that passively captures audio, transcribes in real-time, and builds a searchable knowledge graph of everything discussed.
+
+Core Features:
+- Background audio capture (iOS + Chrome)
+- Real-time transcription via Whisper API
+- Automatic extraction of decisions, action items, and key facts
+- Searchable timeline of all captured conversations
+- Privacy controls (pause/delete anytime)
+
+Technical Stack:
+- Frontend: React Native (mobile) + Next.js (web dashboard)
+- Audio: Web Audio API / iOS AVAudioSession
+- Transcription: OpenAI Whisper large-v3
+- Storage: Supabase + pgvector for semantic search
+- LLM: GPT-4o for fact extraction
+
+Risks:
+- iOS background audio permissions are complex
+- Battery drain from always-on recording
+- Privacy concerns ("is it recording me?")
+- Whisper latency for real-time use
+
+Status: ABANDONED after 3 hours. Couldn't get reliable background audio working in time.`,
+        mime: "application/vnd.google-apps.document",
+      },
+      {
+        title: "Ambient AI - Architecture Sketch",
+        content: `Ambient Listening AI - System Architecture
+
+Audio Pipeline:
+  Mic Input -> Web Audio API -> Chunks (30s segments) -> Whisper API -> Transcript
+
+Processing Pipeline:
+  Transcript -> GPT-4o extraction -> Facts / Decisions / Action Items -> Supabase
+
+Search:
+  User Query -> Embedding -> pgvector cosine similarity -> Top-K results -> LLM summary
+
+Key Decision: Using Whisper large-v3 instead of real-time streaming because:
+- Streaming requires WebSocket setup we don't have time for
+- 30-second chunks give us good enough latency for a demo
+- Accuracy is significantly better than whisper-small
+
+Open Questions:
+- How to handle overlapping speakers?
+- Do we need speaker diarization? (probably not for hackathon)
+- What's the minimum viable privacy UX?
+
+Note from ${owner}: This architecture is solid but we ran into the background audio wall. Moving to a new idea.`,
+        mime: "application/vnd.google-apps.document",
+      },
+    ];
+    return rng.pick(templates);
+  }
+
+  if (project.phase === "mid") {
+    const templates = [
+      {
+        title: "AI Workforce - Specialized Agents PRD",
+        content: `AI Workforce with Post-Trained Specialized Agents
+TreeHacks 2026 - Idea #2
+
+Concept: An AI workforce where each agent is fine-tuned on a specific domain. Instead of one general AI, you have a team of specialists that collaborate.
+
+Agent Types:
+- Legal Agent: Fine-tuned on contracts, compliance, legal precedent
+- Finance Agent: Trained on financial modeling, budgeting, forecasting
+- Engineering Agent: Knows your codebase, architecture decisions, tech debt
+- Product Agent: Understands roadmap, user research, feature priorities
+
+How It Works:
+1. User asks a question
+2. Coordinator agent analyzes the query and routes to the right specialist
+3. Specialist agent responds with domain-specific expertise
+4. If needed, agents consult each other (e.g., Legal + Finance for a deal review)
+
+Technical Approach:
+- Base model: GPT-4o-mini for speed
+- Fine-tuning: OpenAI fine-tuning API or LoRA on open-source models
+- Coordination: Simple routing layer based on intent classification
+- Each agent has its own system prompt + fine-tuned weights
+
+Problem: Fine-tuning takes 20+ minutes per agent on Modal. We can't iterate fast enough in a hackathon.
+
+Status: PIVOTED after ~3 hours. The idea is strong but we couldn't make it demoable in time.
+The fine-tuning loop was too slow and the "specialization" was hard to show in a 3-min demo.`,
+        mime: "application/vnd.google-apps.document",
+      },
+      {
+        title: "Idea Comparison Matrix - What Should We Build?",
+        content: `TreeHacks 2026 - Idea Comparison
+
+| Criteria | Ambient Listener | AI Workforce | Memory Layer |
+|----------|-----------------|--------------|--------------|
+| Novelty | High (0-to-1) | Medium | High |
+| Demoability | Low (needs mobile) | Medium | High (web app) |
+| Build Time | 15+ hours | 12+ hours | 8-10 hours |
+| Wow Factor | "Always listening" | "Team of AIs" | "Digital twins" |
+| Technical Risk | High (audio) | Medium (fine-tuning) | Low (RAG + embeddings) |
+| Judge Appeal | Polarizing | Interesting | Strong (clear use case) |
+
+Decision: Going with Memory Layer / OrgPulse.
+
+Rationale:
+- We've already burned 5+ hours on ideas 1 and 2
+- Memory Layer is the most demoable -- it's a web app with clear visual output
+- RAG + embeddings is well-understood tech, low risk of hitting walls
+- The "digital twin" angle is a strong narrative for judges
+- We can reuse some code from the ambient listener (transcription) and workforce (multi-agent chat)
+
+Votes:
+- ${world.people[0]?.name}: Memory Layer
+- ${world.people[1]?.name}: Memory Layer (was pushing for Workforce but agreed time is short)
+- ${world.people[2]?.name}: Memory Layer
+- ${world.people[3]?.name}: Memory Layer (reluctantly -- still thinks Ambient is more novel)`,
+        mime: "application/vnd.google-apps.document",
+      },
+    ];
+    return rng.pick(templates);
+  }
+
+  // Final phase -- OrgPulse / Memory Layer
   const templates = [
-    // Passive-aggressive meeting agenda
     {
-      title: `${project.name} - "Alignment" Meeting Agenda (UPDATED v${rng.int(4, 8)})`,
-      content: `${project.name} - Cross-Functional Alignment Meeting
-(Renamed from "Emergency Sync" per ${antagonist.name}'s request)
-(Previously renamed from "Escalation Call" per leadership's request)
+      title: "OrgPulse - Demo Script (FINAL)",
+      content: `OrgPulse Demo Script - TreeHacks 2026
+Time: 3 minutes
 
-Agenda:
+INTRO (30s):
+"Every organization has a memory problem. When someone leaves, their knowledge walks out the door. When someone joins, they spend weeks just figuring out who knows what. OrgPulse is an AI-native memory layer that captures, organizes, and serves organizational knowledge through digital twins."
 
-1. Review of ${conflict.topic} (again) — 15 min
-   Note: We covered this in meetings on ${rng.int(3, 6)} previous occasions. Recap for those who were "unable to attend."
+DEMO FLOW:
 
-2. ${antagonist.name}'s proposal — 10 min
-   ${conflict.side_b.position}
-   (Comment from ${owner}: "${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}")
+1. CEO Insights View (45s)
+- Show the insights dashboard
+- Ask: "What does the team think about our launch timeline?"
+- Show responses from multiple employee clones with stances + evidence
+- Highlight cross-team patterns
 
-3. ${owner}'s counter-proposal — 10 min
-   ${conflict.side_a.position}
-   (Comment from ${antagonist.name}: "${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}")
+2. Clone Chat (45s)
+- Pick an employee clone
+- Ask: "What are you working on and what are the biggest risks?"
+- Show the clone responding with real context from Slack + Docs
+- Point out citations at the bottom
 
-4. Attempt to reach consensus — 25 min
-   (Historically, this has not been successful. Bringing ${bystander.name} as neutral party.)
+3. Continual Learning - LIVE (30s)
+- Send a Slack message in real-time
+- Show it appearing in the Continual Learning panel
+- "The clone literally learns in real-time from Slack, email, Drive"
 
-5. Decide who actually owns this decision — 10 min
-   (This was supposed to be decided ${rng.int(2, 5)} meetings ago.)
+4. Onboarding Brief (15s)
+- Generate an onboarding brief for a new hire
+- Show: key people, recent decisions, risks, key docs
 
-Pre-read: Please review the decision log (see v${rng.int(1, 3)} through v${rng.int(5, 8)} in the shared folder). If you haven't read it, ${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}`,
+5. Close (15s)
+"OrgPulse turns your organization's scattered knowledge into a living, searchable memory. Every conversation, every doc, every decision -- captured and accessible through AI digital twins."
+
+TECH STACK SLIDE:
+Next.js + Supabase + pgvector + OpenAI + Whisper`,
       mime: "application/vnd.google-apps.document",
     },
-
-    // Contentious shared spreadsheet
     {
-      title: `${project.name} - Resource Allocation (DISPUTED)`,
-      content: `${project.name} Resource Allocation Matrix
+      title: "OrgPulse - Technical Architecture",
+      content: `OrgPulse - Technical Architecture
+TreeHacks 2026
 
-IMPORTANT: ${antagonist.name} and ${owner} have conflicting edits in this sheet.
-Please do NOT modify rows 4-12 until the dispute is resolved.
+Data Flow:
+  Integrations (Slack, Drive, Email) -> Ingestion Pipeline -> Chunking -> Embedding -> Supabase (pgvector)
+  User Query -> Embedding -> Vector Search -> LLM System Prompt -> Streaming Response
 
-Edit History:
-- ${owner} updated headcount projections (v${rng.int(8, 15)})
-- ${antagonist.name} reverted changes with comment: "These numbers are wrong."
-- ${owner} re-applied changes with comment: "${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}"
-- ${antagonist.name} added a comment: "${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}"
-- ${bystander.name} added a comment: "Can we please stop editing the same cells?"
+Database: Supabase (PostgreSQL + pgvector)
+Tables:
+- clones: one per employee (name, personality, expertise)
+- memories: unified knowledge store (documents, chunks, facts, categories)
+- messages: chat history
+- integrations: OAuth credentials for Slack, Drive, etc.
 
-Current State:
-- Engineering headcount: ${rng.int(6, 12)} (${owner} says ${rng.int(8, 14)}, ${antagonist.name} says ${rng.int(4, 8)})
-- Budget variance: ${rng.int(5, 25)}% over (disputed)
-- Target date: ${project.target_date} (${antagonist.name} thinks this is "aspirational")
+Memory Types:
+- document: raw ingested content (Slack channel dump, Drive file, email)
+- chunk: 500-token segments with embeddings for retrieval
+- fact: extracted atomic knowledge with confidence scores
+- category: summarized topic clusters (from compaction)
 
-Resolution: Pending. ${bystander.name} has locked the sheet.`,
-      mime: "application/vnd.google-apps.spreadsheet",
+Continual Learning Loop:
+1. User chats with clone -> extract facts from conversation -> save with embeddings
+2. Slack webhook -> ingest message -> extract facts -> save per-person
+3. Integration sync -> pull latest from Drive/Slack -> chunk + embed
+
+Key Innovation: The memory layer is SOURCE-AGNOSTIC. Slack messages, Drive docs, emails, voice transcripts -- they all become the same thing: typed, embedded memory rows. The clone doesn't care where knowledge came from, it just searches semantically.
+
+Built by: ${world.people.map((p) => `${p.name} (${p.role})`).join(", ")}`,
+      mime: "application/vnd.google-apps.document",
     },
-
-    // Frustrated project brief
     {
-      title: `${project.name} - Project Brief (FINAL) (FINAL v2) (ACTUALLY FINAL)`,
-      content: `${project.name} Project Brief
+      title: "OrgPulse - What We Learned From Pivoting",
+      content: `What We Learned From Pivoting Twice at TreeHacks
 
-Version: ${rng.int(7, 14)} (yes, really)
-Last edited by: ${owner}
-Status: "Final" — subject to change without notice, apparently
+Timeline:
+- 9:30 PM: Hackathon starts. We're pumped. Idea: Ambient Listening AI.
+- 10:00 PM: Start building ambient listener prototype. Whisper API is fast.
+- 12:30 AM: Hit a wall. Background audio on iOS/Chrome is a nightmare. Battery drain is terrible. Demo would just be... a recording app?
+- 12:45 AM: Tense team discussion. Some want to push through, others want to pivot.
+- 1:00 AM: Decision: pivot to AI Workforce with specialized agents.
+- 1:30 AM: Start building multi-agent framework. Coordinator + specialists.
+- 3:00 AM: Fine-tuning is too slow. Each agent takes 20 min to train. Can't iterate fast enough.
+- 3:15 AM: Another tense discussion. We've now burned 5.5 hours on two ideas.
+- 3:30 AM: Final pivot to AI-native memory layer. Everyone agrees this time.
+- 4:00 AM: Supabase schema done, RAG pipeline running, frontend started.
+- 5:00 AM: Clone chat working. First "wow" moment when a clone answers from Slack data.
+- 7:00 AM: Continual learning, onboarding, offboarding all functional.
+- 9:00 AM: Demo script rehearsed. Slides done. We're actually proud of this one.
 
-Objective:
-${conflict.side_a.position}
+Key Takeaway: The pivots weren't wasted time. The ambient listener taught us about real-time transcription (we reused Whisper). The AI workforce taught us about multi-agent coordination (we reused clone-to-clone consultation). Both fed into OrgPulse.
 
-Counter-objective (per ${antagonist.name}):
-${conflict.side_b.position}
+The meta-lesson: your hackathon journey IS the product sometimes. We built a memory layer because we experienced the pain of losing context during pivots -- and realized every org has the same problem, just on a larger scale.`,
+      mime: "application/vnd.google-apps.document",
+    },
+    {
+      title: "OrgPulse - Onboarding Brief Template",
+      content: `OrgPulse Onboarding Brief - Auto-Generated
 
-What we agreed on:
-- We need to do something. (This is the extent of our consensus.)
+Role: [New Hire Role]
+Team: [Department]
 
-What we disagree on:
-- Everything else. See comment thread below.
+Key People to Know:
+- [Name] ([Role]) -- [relationship + tip for connecting]
 
-Comments:
-${owner}: "I've rewritten this brief ${rng.int(4, 8)} times based on contradictory feedback."
-${antagonist.name}: "${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}"
-${bystander.name}: "Maybe we should just have a meeting." (We have. ${rng.int(5, 10)} of them.)
+Key Context:
+- The team is building [current project] with a target of [date]
+- Recent major decision: [decision from memory]
+- Current risk: [risk from memory]
 
-Timeline: ${project.target_date}
-Confidence: Low`,
+Key Documents:
+- [Doc title] ([source]) -- [relevance]
+
+Recent Decisions:
+- [Decision] (made on [date] by [participants])
+
+Risks & Landmines:
+- [Risk] (severity: [low/medium/high])
+
+Note: This brief is auto-generated from the organization's memory layer. All data comes from real Slack conversations, Google Drive documents, and other integrated sources. Content is updated as new information flows in.`,
       mime: "application/vnd.google-apps.document",
     },
   ];
-
   return rng.pick(templates);
 }
 
@@ -181,21 +294,26 @@ export function generateGdriveResources({
   const records: MemoryResourceInput[] = [];
 
   for (let i = 0; i < count; i++) {
-    const project = rng.pick(world.projects);
+    // Weight doc generation by timeline
+    const progress = i / count;
+    let project: SyntheticProject;
+    if (progress < 0.2) {
+      project = world.projects.find((p) => p.phase === "early") || rng.pick(world.projects);
+    } else if (progress < 0.4) {
+      project = world.projects.find((p) => p.phase === "mid") || rng.pick(world.projects);
+    } else {
+      project = world.projects.find((p) => p.phase === "final") || rng.pick(world.projects);
+    }
+
     const owner = rng.pick(world.people);
-    const isSpicy = rng.bool(0.4);
     const occurredAt = randomIsoBetween(rng, startIso, endIso);
     const fileId = `gdrive_${project.key.toLowerCase()}_${i + 1}_${rng.int(1000, 9999)}`;
 
     const sharedWith = world.people
-      .filter(p => p.id !== owner.id)
-      .filter(() => rng.bool(0.6))
-      .slice(0, 4)
-      .map(p => p.email);
+      .filter((p) => p.id !== owner.id)
+      .map((p) => p.email);
 
-    const doc = isSpicy
-      ? buildSpicyDoc(project, world, owner.name, rng)
-      : buildNormalDoc(project, owner.name, rng);
+    const doc = buildDoc(project, world, owner.name, rng);
 
     const metadata: GdriveSourceMetadata = {
       source_type: "gdrive",
