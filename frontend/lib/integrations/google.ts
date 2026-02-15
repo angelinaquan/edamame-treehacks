@@ -2,6 +2,7 @@ import { google, drive_v3, gmail_v1 } from "googleapis";
 import { chunkText } from "@/lib/core/chunker";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
 import { getGoogleDriveCredentials, getGoogleOAuthTokens } from "./credentials";
+import { generateEmbeddings } from "@/lib/agents/openai";
 import type { OAuth2Client } from "google-auth-library";
 
 export interface GoogleDriveFileSnapshot {
@@ -311,6 +312,23 @@ export async function syncGoogleDriveContextToSupabase(opts: {
     }
   }
 
+  // Generate embeddings for chunks
+  const chunkRows = memoryRows.filter((r) => r.type === "chunk");
+  try {
+    if (chunkRows.length > 0) {
+      const embeddings = await generateEmbeddings(chunkRows.map((r) => r.content));
+      let embIdx = 0;
+      for (const row of memoryRows) {
+        if (row.type === "chunk" && embIdx < embeddings.length) {
+          (row as Record<string, unknown>).embedding = JSON.stringify(embeddings[embIdx]);
+          embIdx++;
+        }
+      }
+    }
+  } catch (embErr) {
+    console.warn("[gdrive-sync] Embedding generation failed, saving without embeddings:", embErr);
+  }
+
   if (memoryRows.length > 0) {
     const { error } = await supabase.from("memories").insert(memoryRows);
     if (error) {
@@ -510,6 +528,23 @@ export async function syncGmailToSupabase(opts: {
         chunksCreated++;
       }
     }
+  }
+
+  // Generate embeddings for chunks
+  const gmailChunkRows = memoryRows.filter((r) => r.type === "chunk");
+  try {
+    if (gmailChunkRows.length > 0) {
+      const embeddings = await generateEmbeddings(gmailChunkRows.map((r) => r.content));
+      let embIdx = 0;
+      for (const row of memoryRows) {
+        if (row.type === "chunk" && embIdx < embeddings.length) {
+          (row as Record<string, unknown>).embedding = JSON.stringify(embeddings[embIdx]);
+          embIdx++;
+        }
+      }
+    }
+  } catch (embErr) {
+    console.warn("[gmail-sync] Embedding generation failed, saving without embeddings:", embErr);
   }
 
   if (memoryRows.length > 0) {

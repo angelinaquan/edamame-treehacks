@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { generateEmbedding } from "@/lib/agents/openai";
+import { learnFromConversation } from "@backend/memory";
 import OpenAI from "openai";
 
 /**
  * POST /api/orgpulse/chat
  * Body: { cloneId: string, question: string, history?: { role: string, content: string }[] }
  *
- * RAG-powered chat with a clone. Fetches relevant chunks from Supabase,
- * builds a system prompt, and streams a response via OpenAI.
+ * RAG-powered chat with a clone. Uses vector search (semantic) with keyword fallback.
+ * Also learns from conversations by extracting facts from user messages.
  */
 
 export async function POST(request: NextRequest) {
@@ -36,6 +38,12 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServerSupabaseClient();
 
+    // Continual learning: extract facts from user question (fire-and-forget)
+    const convId = `orgpulse_conv_${Date.now()}`;
+    learnFromConversation(cloneId, question, convId).catch((err) =>
+      console.error("[orgpulse-chat] Background learning failed:", err)
+    );
+
     // Fetch clone info
     const { data: clone } = await supabase
       .from("clones")
@@ -47,27 +55,47 @@ export async function POST(request: NextRequest) {
     const personality = clone?.personality as Record<string, unknown> | null;
     const expertise = clone?.expertise_tags ?? [];
 
-    // Fetch relevant chunks (simple keyword search — no vector search for now)
-    const searchTerms = question
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((w) => w.length > 3)
-      .slice(0, 5);
-
+    // Try vector search first, then fall back to keyword search
     let chunks: { content: string; metadata: Record<string, unknown> }[] = [];
 
-    if (searchTerms.length > 0) {
-      const orFilter = searchTerms.map((t) => `content.ilike.%${t}%`).join(",");
-      const { data: chunkData } = await supabase
-        .from("memories")
-        .select("content, metadata")
-        .eq("type", "chunk")
-        .or(orFilter)
-        .limit(10);
-      chunks = (chunkData ?? []) as typeof chunks;
+    // Attempt 1: Semantic vector search via match_memories RPC
+    try {
+      const queryEmbedding = await generateEmbedding(question);
+      const { data: vectorResults } = await supabase.rpc("match_memories", {
+        query_embedding: JSON.stringify(queryEmbedding),
+        match_threshold: 0.4,
+        match_count: 10,
+        p_clone_id: cloneId,
+        p_type: "chunk",
+      });
+      if (vectorResults && vectorResults.length > 0) {
+        chunks = (vectorResults as Array<{ content: string; metadata: Record<string, unknown> }>);
+      }
+    } catch {
+      // Vector search unavailable — fall through to keyword
     }
 
-    // If no keyword matches, get most recent chunks
+    // Attempt 2: Keyword search fallback
+    if (chunks.length === 0) {
+      const searchTerms = question
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 3)
+        .slice(0, 5);
+
+      if (searchTerms.length > 0) {
+        const orFilter = searchTerms.map((t) => `content.ilike.%${t}%`).join(",");
+        const { data: chunkData } = await supabase
+          .from("memories")
+          .select("content, metadata")
+          .eq("type", "chunk")
+          .or(orFilter)
+          .limit(10);
+        chunks = (chunkData ?? []) as typeof chunks;
+      }
+    }
+
+    // Attempt 3: Fall back to most recent chunks
     if (chunks.length === 0) {
       const { data: recentChunks } = await supabase
         .from("memories")
@@ -78,14 +106,37 @@ export async function POST(request: NextRequest) {
       chunks = (recentChunks ?? []) as typeof chunks;
     }
 
+    // Also fetch relevant facts for additional context
+    let facts: { content: string; source: string; confidence: number }[] = [];
+    try {
+      const queryEmbedding = await generateEmbedding(question);
+      const { data: factResults } = await supabase.rpc("match_memories", {
+        query_embedding: JSON.stringify(queryEmbedding),
+        match_threshold: 0.4,
+        match_count: 5,
+        p_clone_id: cloneId,
+        p_type: "fact",
+      });
+      if (factResults && factResults.length > 0) {
+        facts = factResults as typeof facts;
+      }
+    } catch {
+      // Fact vector search unavailable
+    }
+
     // Build context string from chunks
     const contextStr = chunks
       .map((c, i) => {
         const source = (c.metadata?.source as string) || "document";
-        const title = (c.metadata?.document_title as string) || "";
+        const title = (c.metadata?.document_title as string) || (c.metadata?.title as string) || "";
         return `[Source ${i + 1}: ${source}${title ? ` — ${title}` : ""}]\n${c.content}`;
       })
       .join("\n\n---\n\n");
+
+    // Build facts context
+    const factsStr = facts.length > 0
+      ? facts.map((f) => `- ${f.content} (source: ${f.source}, confidence: ${((f.confidence ?? 0.5) * 100).toFixed(0)}%)`).join("\n")
+      : "";
 
     // System prompt
     const systemPrompt = `You are the AI Digital Twin of ${cloneName}. You embody their knowledge, communication style, and expertise.
@@ -98,7 +149,7 @@ export async function POST(request: NextRequest) {
 
 ## Your Knowledge Base (retrieved from organizational data)
 ${contextStr || "(No relevant documents found in the knowledge base yet.)"}
-
+${factsStr ? `\n### Key Facts\n${factsStr}\n` : ""}
 ## Instructions
 1. Answer questions using the knowledge base context above as your primary source.
 2. Speak as ${cloneName}'s twin — use first person.

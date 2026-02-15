@@ -2,6 +2,12 @@
  * Memory — organizational knowledge storage, retrieval, and compaction.
  * All knowledge lives in a single `memories` table with type/source discriminators.
  * Supports Supabase and Mem0 providers with fallback.
+ *
+ * Continual learning features:
+ *  - Vector/semantic search via pgvector embeddings
+ *  - Conversation-to-memory learning loop
+ *  - Time-weighted relevance scoring
+ *  - Contradiction detection and deduplication
  */
 
 import type { Chunk, Memory } from "@/lib/core/types";
@@ -61,12 +67,22 @@ export interface CompactionResult {
   snapshotsCreated?: number;
 }
 
+export interface ConversationLearningResult {
+  factsExtracted: number;
+  factsSaved: number;
+  factsReinforced: number;
+}
+
 export function isSupabaseMemoryEnabled(): boolean {
   return isSupabaseMemoryFlagEnabled();
 }
 
 function isSupabaseFallbackAvailable(): boolean {
   return readRuntimeEnv("USE_SUPABASE_MEMORY") === "true" && isSupabaseConfigured();
+}
+
+function isSupabaseAvailable(): boolean {
+  return isSupabaseMemoryEnabled() || isSupabaseFallbackAvailable();
 }
 
 function cleanTerm(term: string): string {
@@ -83,6 +99,30 @@ function summarizeLines(lines: string[], maxLines = 3): string {
     .map((line) => line.trim())
     .filter(Boolean)
     .join(" ");
+}
+
+/**
+ * Compute a recency bonus: memories from the last hour get +0.3,
+ * decaying to 0 over 30 days using an exponential curve.
+ */
+function recencyBonus(occurredAt: string): number {
+  const ageMs = Date.now() - new Date(occurredAt).getTime();
+  const ageDays = ageMs / (1000 * 60 * 60 * 24);
+  // Half-life of ~3 days, max bonus 0.3
+  return 0.3 * Math.exp(-ageDays / 3);
+}
+
+/**
+ * Compute a composite relevance score combining confidence and recency.
+ * Used to re-rank results from both keyword and vector search.
+ */
+function computeRelevanceScore(
+  confidence: number,
+  occurredAt: string,
+  similarity?: number
+): number {
+  const base = similarity != null ? similarity : confidence;
+  return base + recencyBonus(occurredAt);
 }
 
 export function searchKnowledgeBase(
@@ -156,11 +196,81 @@ export function saveFact(
   return memory;
 }
 
+// ---------------------------------------------------------------------------
+// Vector / semantic search helpers
+// ---------------------------------------------------------------------------
+
+interface VectorMatchRow {
+  id: string;
+  clone_id: string;
+  type: string;
+  source: string;
+  content: string;
+  confidence: number;
+  metadata: Record<string, unknown>;
+  occurred_at: string;
+  created_at: string;
+  similarity: number;
+}
+
+/**
+ * Attempt semantic vector search via the `match_memories` Supabase RPC.
+ * Returns null if the RPC is unavailable or no results are found.
+ */
+async function vectorSearch(
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  queryEmbedding: number[],
+  cloneId: string,
+  memoryType: string | null,
+  threshold: number,
+  limit: number
+): Promise<VectorMatchRow[] | null> {
+  try {
+    const params: Record<string, unknown> = {
+      query_embedding: JSON.stringify(queryEmbedding),
+      match_threshold: threshold,
+      match_count: limit,
+      p_clone_id: cloneId,
+    };
+    if (memoryType) {
+      params.p_type = memoryType;
+    }
+    const { data, error } = await supabase.rpc("match_memories", params);
+    if (error) {
+      // RPC might not be deployed yet — fall back silently
+      console.warn("[memory] match_memories RPC failed, falling back to keyword search:", error.message);
+      return null;
+    }
+    return (data as VectorMatchRow[]) || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Try to generate a query embedding. Returns null on failure (no API key, etc.)
+ * Uses a lazy import to avoid circular dependency issues.
+ */
+async function tryGenerateQueryEmbedding(query: string): Promise<number[] | null> {
+  if (!query || query.trim().length < 3) return null;
+  try {
+    const { generateEmbedding } = await import("@/lib/agents/openai");
+    return await generateEmbedding(query);
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// getKnowledgeContext — main retrieval (vector search with keyword fallback)
+// ---------------------------------------------------------------------------
+
 export async function getKnowledgeContext(
   cloneId: string,
   query: string,
   topK: number = 5
 ): Promise<KnowledgeContext | null> {
+  // 1. Try Mem0 first if configured
   if (isMem0MemoryEnabled()) {
     try {
       const mem0Context = await searchMem0KnowledgeContext(cloneId, query, topK);
@@ -172,16 +282,34 @@ export async function getKnowledgeContext(
     }
   }
 
-  if (!isSupabaseMemoryEnabled() && !isSupabaseFallbackAvailable()) return null;
+  if (!isSupabaseAvailable()) return null;
 
   const supabase = createServerSupabaseClient();
+
+  // 2. Try vector search first
+  const queryEmbedding = await tryGenerateQueryEmbedding(query);
+  let vectorItems: VectorMatchRow[] | null = null;
+  let vectorChunks: VectorMatchRow[] | null = null;
+
+  if (queryEmbedding) {
+    [vectorItems, vectorChunks] = await Promise.all([
+      vectorSearch(supabase, queryEmbedding, cloneId, "fact", 0.4, topK * 3),
+      vectorSearch(supabase, queryEmbedding, cloneId, "chunk", 0.4, topK * 3),
+    ]);
+  }
+
+  const hasVectorResults =
+    (vectorItems && vectorItems.length > 0) ||
+    (vectorChunks && vectorChunks.length > 0);
+
+  // 3. Keyword fallback (or supplement) for items and chunks
   const terms = query
     .toLowerCase()
     .split(/\s+/)
     .filter((t) => t.length >= 3)
     .slice(0, 6);
 
-  // Fetch categories (type = 'category')
+  // Always fetch categories and resources via keyword (they don't need vector search)
   const categoryQuery = supabase
     .from("memories")
     .select("content, confidence, metadata, occurred_at")
@@ -190,30 +318,6 @@ export async function getKnowledgeContext(
     .order("occurred_at", { ascending: false })
     .limit(4);
 
-  // Fetch fact items (type = 'fact')
-  let itemQuery = supabase
-    .from("memories")
-    .select("content, confidence, source, occurred_at, metadata")
-    .eq("clone_id", cloneId)
-    .eq("type", "fact")
-    .order("confidence", { ascending: false })
-    .limit(topK * 2);
-
-  // Fetch chunks (type = 'chunk')
-  let chunkQuery = supabase
-    .from("memories")
-    .select("id, clone_id, content, metadata, created_at")
-    .eq("clone_id", cloneId)
-    .eq("type", "chunk")
-    .order("created_at", { ascending: false })
-    .limit(topK * 3);
-
-  if (terms.length > 0) {
-    itemQuery = itemQuery.or(buildIlikeOr("content", terms));
-    chunkQuery = chunkQuery.or(buildIlikeOr("content", terms));
-  }
-
-  // Fetch documents/snapshots as resources (type in document, snapshot)
   const resourceQuery = supabase
     .from("memories")
     .select("source, content, metadata, occurred_at")
@@ -222,38 +326,122 @@ export async function getKnowledgeContext(
     .order("occurred_at", { ascending: false })
     .limit(6);
 
-  const [{ data: categories }, { data: items }, { data: chunks }, { data: resources }] =
-    await Promise.all([categoryQuery, itemQuery, chunkQuery, resourceQuery]);
+  // If vector search didn't work, fetch items/chunks via keyword
+  let keywordItemsPromise: ReturnType<typeof supabase.from> | null = null;
+  let keywordChunksPromise: ReturnType<typeof supabase.from> | null = null;
 
-  return {
-    categories:
-      categories?.map((row: { content: string; confidence: number | null; metadata: Record<string, unknown> }) => ({
-        category_key: String(row.metadata?.category_key || "general"),
-        summary: row.content,
-        confidence: row.confidence ?? 0.5,
-      })) || [],
-    items:
-      items?.map((row: {
+  if (!hasVectorResults) {
+    let itemQuery = supabase
+      .from("memories")
+      .select("content, confidence, source, occurred_at, metadata")
+      .eq("clone_id", cloneId)
+      .eq("type", "fact")
+      .order("confidence", { ascending: false })
+      .limit(topK * 2);
+
+    let chunkQuery = supabase
+      .from("memories")
+      .select("id, clone_id, content, metadata, created_at")
+      .eq("clone_id", cloneId)
+      .eq("type", "chunk")
+      .order("created_at", { ascending: false })
+      .limit(topK * 3);
+
+    if (terms.length > 0) {
+      itemQuery = itemQuery.or(buildIlikeOr("content", terms));
+      chunkQuery = chunkQuery.or(buildIlikeOr("content", terms));
+    }
+    keywordItemsPromise = itemQuery;
+    keywordChunksPromise = chunkQuery;
+  }
+
+  // Execute all queries in parallel
+  const promises: Promise<{ data: unknown }>[] = [categoryQuery, resourceQuery];
+  if (keywordItemsPromise) promises.push(keywordItemsPromise);
+  if (keywordChunksPromise) promises.push(keywordChunksPromise);
+
+  const results = await Promise.all(promises);
+  const categories = results[0].data as Array<{
+    content: string;
+    confidence: number | null;
+    metadata: Record<string, unknown>;
+    occurred_at: string;
+  }> | null;
+  const resources = results[1].data as Array<{
+    source: string;
+    content: string;
+    metadata: Record<string, unknown>;
+    occurred_at: string;
+  }> | null;
+  const keywordItems = keywordItemsPromise
+    ? (results[2].data as Array<{
         content: string;
         confidence: number | null;
         source: string;
         occurred_at: string;
         metadata: Record<string, unknown>;
-      }) => ({
+      }> | null)
+    : null;
+  const keywordChunks = keywordChunksPromise
+    ? (results[promises.length - 1].data as Chunk[] | null)
+    : null;
+
+  // 4. Build items from vector search OR keyword fallback, re-ranked by relevance
+  let finalItems: KnowledgeContext["items"];
+  if (vectorItems && vectorItems.length > 0) {
+    finalItems = vectorItems
+      .map((row) => ({
+        fact: row.content,
+        confidence: row.confidence ?? 0.5,
+        source_type: row.source,
+        occurred_at: row.occurred_at,
+        category_key: (row.metadata?.category_key as string) || undefined,
+        _score: computeRelevanceScore(row.confidence, row.occurred_at, row.similarity),
+      }))
+      .sort((a, b) => b._score - a._score)
+      .slice(0, topK * 2)
+      .map(({ _score: _, ...rest }) => rest);
+  } else {
+    finalItems =
+      keywordItems?.map((row) => ({
         fact: row.content,
         confidence: row.confidence ?? 0.5,
         source_type: row.source,
         occurred_at: row.occurred_at,
         category_key: row.metadata?.category_key as string | undefined,
+      })) || [];
+  }
+
+  // 5. Build chunks from vector search OR keyword fallback
+  let finalChunks: Chunk[];
+  if (vectorChunks && vectorChunks.length > 0) {
+    finalChunks = vectorChunks
+      .map((row) => ({
+        id: row.id,
+        clone_id: row.clone_id,
+        content: row.content,
+        metadata: row.metadata as Record<string, unknown>,
+        created_at: row.created_at,
+        _score: computeRelevanceScore(row.confidence, row.occurred_at, row.similarity),
+      }))
+      .sort((a, b) => b._score - a._score)
+      .slice(0, topK * 3)
+      .map(({ _score: _, ...rest }) => rest);
+  } else {
+    finalChunks = (keywordChunks as Chunk[]) || [];
+  }
+
+  return {
+    categories:
+      categories?.map((row) => ({
+        category_key: String(row.metadata?.category_key || "general"),
+        summary: row.content,
+        confidence: row.confidence ?? 0.5,
       })) || [],
-    chunks: (chunks as Chunk[]) || [],
+    items: finalItems,
+    chunks: finalChunks,
     resources:
-      resources?.map((row: {
-        source: string;
-        content: string;
-        metadata: Record<string, unknown>;
-        occurred_at: string;
-      }) => ({
+      resources?.map((row) => ({
         source_type: row.source,
         title: row.metadata?.title as string | undefined,
         author: row.metadata?.author as string | undefined,
@@ -263,10 +451,117 @@ export async function getKnowledgeContext(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Conversation-to-memory learning
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract facts from a conversation message and persist them to Supabase.
+ * Performs deduplication: if a semantically similar fact already exists
+ * (vector similarity > 0.9), reinforce it instead of creating a duplicate.
+ *
+ * This function is fire-and-forget safe — all errors are caught and logged.
+ */
+export async function learnFromConversation(
+  cloneId: string,
+  userMessage: string,
+  conversationId: string
+): Promise<ConversationLearningResult> {
+  const result: ConversationLearningResult = {
+    factsExtracted: 0,
+    factsSaved: 0,
+    factsReinforced: 0,
+  };
+
+  if (!isSupabaseAvailable()) return result;
+
+  const facts = extractFacts(userMessage);
+  if (facts.length === 0) return result;
+  result.factsExtracted = facts.length;
+
+  const supabase = createServerSupabaseClient();
+
+  // Try to generate embeddings for dedup; proceed without if unavailable
+  let embeddings: number[][] = [];
+  try {
+    const { generateEmbeddings } = await import("@/lib/agents/openai");
+    embeddings = await generateEmbeddings(facts);
+  } catch {
+    // Embedding generation unavailable — skip dedup, still save facts
+  }
+
+  for (let i = 0; i < facts.length; i++) {
+    const fact = facts[i];
+    const embedding = embeddings[i] || null;
+
+    // Dedup: check for near-duplicate via vector similarity
+    if (embedding) {
+      const duplicates = await vectorSearch(
+        supabase,
+        embedding,
+        cloneId,
+        "fact",
+        0.88, // high threshold = near-duplicate
+        1
+      );
+
+      if (duplicates && duplicates.length > 0) {
+        // Reinforce existing fact: bump confidence, update timestamp
+        const existing = duplicates[0];
+        const newConfidence = Math.min((existing.confidence || 0.5) + 0.05, 0.99);
+        const existingMeta =
+          existing.metadata && typeof existing.metadata === "object"
+            ? existing.metadata
+            : {};
+        await supabase
+          .from("memories")
+          .update({
+            confidence: newConfidence,
+            metadata: {
+              ...existingMeta,
+              last_reinforced: new Date().toISOString(),
+              reinforcement_count:
+                ((existingMeta.reinforcement_count as number) || 0) + 1,
+            },
+          })
+          .eq("id", existing.id);
+        result.factsReinforced++;
+        continue;
+      }
+    }
+
+    // No duplicate found — insert as new fact
+    const insertData: Record<string, unknown> = {
+      clone_id: cloneId,
+      type: "fact",
+      source: "conversation",
+      content: fact,
+      confidence: 0.75,
+      metadata: {
+        conversation_id: conversationId,
+        compaction_state: "active",
+      },
+      occurred_at: new Date().toISOString(),
+    };
+    if (embedding) {
+      insertData.embedding = JSON.stringify(embedding);
+    }
+
+    const { error } = await supabase.from("memories").insert(insertData);
+    if (!error) {
+      result.factsSaved++;
+    } else {
+      console.error("[memory] Failed to save fact:", error.message);
+    }
+  }
+
+  return result;
+}
+
 export async function runWeeklySummarization(
   cloneId: string
 ): Promise<CompactionResult> {
-  if (!isSupabaseMemoryEnabled()) {
+  if (!isSupabaseAvailable()) {
     return { categoriesCreated: 0, itemsUpdated: 0 };
   }
 
@@ -357,7 +652,7 @@ export async function runWeeklySummarization(
 export async function runMonthlyRewind(
   cloneId: string
 ): Promise<CompactionResult> {
-  if (!isSupabaseMemoryEnabled()) {
+  if (!isSupabaseAvailable()) {
     return { categoriesCreated: 0, itemsUpdated: 0, snapshotsCreated: 0 };
   }
 

@@ -50,3 +50,29 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   });
   return response.data[0].embedding;
 }
+
+/**
+ * Batch-generate embeddings for multiple texts.
+ * Splits into batches of BATCH_SIZE to respect API limits.
+ * Returns an array of embeddings in the same order as the input texts.
+ */
+export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
+  if (texts.length === 0) return [];
+
+  const openai = getOpenAIClient();
+  const BATCH_SIZE = 50;
+  const allEmbeddings: number[][] = [];
+
+  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    const batch = texts.slice(i, i + BATCH_SIZE);
+    const response = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: batch,
+    });
+    // OpenAI returns embeddings in order of input index
+    const sorted = [...response.data].sort((a, b) => a.index - b.index);
+    allEmbeddings.push(...sorted.map((d) => d.embedding));
+  }
+
+  return allEmbeddings;
+}

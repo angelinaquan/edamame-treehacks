@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  isSupabaseMemoryEnabled,
   runMonthlyRewind,
   runWeeklySummarization,
 } from "@backend/memory";
-import { getMemoryProvider } from "@backend/memory/flags";
+import { getMemoryProvider, isSupabaseConfigured } from "@backend/memory/flags";
 
 type CompactionMode = "weekly" | "monthly" | "both";
 
 export async function POST(request: NextRequest) {
   try {
     const provider = getMemoryProvider();
-    if (!isSupabaseMemoryEnabled()) {
+    if (!isSupabaseConfigured()) {
       if (provider === "mem0") {
         return NextResponse.json({
           success: true,
@@ -23,7 +22,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Supabase memory compaction is disabled. Set USE_SUPABASE_MEMORY=true.",
+            "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
         },
         { status: 400 }
       );

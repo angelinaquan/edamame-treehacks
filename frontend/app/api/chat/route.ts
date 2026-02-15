@@ -4,7 +4,7 @@ import { buildSystemPrompt } from "@/lib/agents/clone-brain";
 import { getActiveReminders, mockMeetings } from "@backend/memory/mock-data";
 import { getCloneRuntime } from "@backend/memory/clone-repository";
 import { canConsult, consultClone, listConsultableClones } from "@/lib/agents/collaboration";
-import { getKnowledgeContext } from "@backend/memory";
+import { getKnowledgeContext, learnFromConversation } from "@backend/memory";
 
 export async function POST(request: NextRequest) {
   try {
@@ -127,6 +127,14 @@ export async function POST(request: NextRequest) {
           break;
         }
       }
+    }
+
+    // Continual learning: extract facts from user message and persist (fire-and-forget)
+    if (message && !isProactiveDebrief) {
+      const convId = `conv_${Date.now()}`;
+      learnFromConversation(clone.id, message, convId).catch((err) =>
+        console.error("[chat] Background learning failed:", err)
+      );
     }
 
     const openai = getOpenAIClient();

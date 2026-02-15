@@ -6,6 +6,7 @@ import { validateSyntheticResources } from "@backend/memory/synthetic/validate";
 import { getMemoryProvider, isSupabaseConfigured } from "@backend/memory/flags";
 import { syncResourcesToMem0 } from "@backend/memory/mem0";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { generateEmbeddings } from "@/lib/agents/openai";
 import type {
   MemoryResourceInput,
   SyntheticGenerationOptions,
@@ -267,6 +268,33 @@ export async function POST(request: NextRequest) {
       });
     });
 
+    // Generate embeddings for chunks and facts (skip documents — too long)
+    const embeddableRows = allMemoryRows.filter(
+      (r) => r.type === "chunk" || r.type === "fact"
+    );
+    const embeddableTexts = embeddableRows.map((r) => r.content);
+    let embeddingsGenerated = 0;
+
+    try {
+      if (embeddableTexts.length > 0) {
+        const embeddings = await generateEmbeddings(embeddableTexts);
+        // Build a map from content index to embedding
+        let embIdx = 0;
+        for (const row of allMemoryRows) {
+          if ((row.type === "chunk" || row.type === "fact") && embIdx < embeddings.length) {
+            (row as Record<string, unknown>).embedding = JSON.stringify(embeddings[embIdx]);
+            embIdx++;
+            embeddingsGenerated++;
+          }
+        }
+      }
+    } catch (embeddingError) {
+      console.warn(
+        "[ingest] Embedding generation failed, inserting without embeddings:",
+        embeddingError instanceof Error ? embeddingError.message : embeddingError
+      );
+    }
+
     // Batch insert all memories
     const { error: insertError } = await supabase
       .from("memories")
@@ -291,6 +319,7 @@ export async function POST(request: NextRequest) {
         chunks: chunkCount,
         facts: factCount,
         categories: categoryCount,
+        embeddings_generated: embeddingsGenerated,
       },
       by_source: generated.counts,
       mem0_sync: mem0Sync,

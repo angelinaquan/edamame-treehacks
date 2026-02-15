@@ -90,3 +90,48 @@ CREATE INDEX idx_memories_embedding ON memories USING ivfflat (embedding vector_
 CREATE INDEX idx_messages_clone_id ON messages(clone_id);
 CREATE INDEX idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX idx_integrations_provider ON integrations(provider);
+
+-- Step 5: Vector similarity search function for semantic retrieval
+CREATE OR REPLACE FUNCTION match_memories(
+  query_embedding vector(1536),
+  match_threshold float DEFAULT 0.5,
+  match_count int DEFAULT 10,
+  p_clone_id uuid DEFAULT NULL,
+  p_type text DEFAULT NULL
+)
+RETURNS TABLE (
+  id uuid,
+  clone_id uuid,
+  type text,
+  source text,
+  content text,
+  confidence float,
+  metadata jsonb,
+  occurred_at timestamptz,
+  created_at timestamptz,
+  similarity float
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    m.id,
+    m.clone_id,
+    m.type,
+    m.source,
+    m.content,
+    m.confidence,
+    m.metadata,
+    m.occurred_at,
+    m.created_at,
+    1 - (m.embedding <=> query_embedding) as similarity
+  FROM memories m
+  WHERE m.embedding IS NOT NULL
+    AND (p_clone_id IS NULL OR m.clone_id = p_clone_id)
+    AND (p_type IS NULL OR m.type = p_type)
+    AND 1 - (m.embedding <=> query_embedding) > match_threshold
+  ORDER BY m.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;

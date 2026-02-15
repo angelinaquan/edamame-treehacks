@@ -7,6 +7,7 @@
 
 export {
   searchKnowledgeBase,
+  searchKnowledgeBaseAsync,
   getCloneMemories,
   extractFacts,
   saveFact,

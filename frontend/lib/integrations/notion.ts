@@ -2,6 +2,7 @@ import { Client } from "@notionhq/client";
 import { chunkText } from "@/lib/core/chunker";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
 import { getNotionApiKey } from "./credentials";
+import { generateEmbeddings } from "@/lib/agents/openai";
 
 interface NotionSearchPage {
   id: string;
@@ -278,6 +279,23 @@ export async function syncNotionContextToSupabase(opts: {
         chunksCreated++;
       }
     }
+  }
+
+  // Generate embeddings for chunks
+  const chunkRows = memoryRows.filter((r) => r.type === "chunk");
+  try {
+    if (chunkRows.length > 0) {
+      const embeddings = await generateEmbeddings(chunkRows.map((r) => r.content));
+      let embIdx = 0;
+      for (const row of memoryRows) {
+        if (row.type === "chunk" && embIdx < embeddings.length) {
+          (row as Record<string, unknown>).embedding = JSON.stringify(embeddings[embIdx]);
+          embIdx++;
+        }
+      }
+    }
+  } catch (embErr) {
+    console.warn("[notion-sync] Embedding generation failed, saving without embeddings:", embErr);
   }
 
   if (memoryRows.length > 0) {
