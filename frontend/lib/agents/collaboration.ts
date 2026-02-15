@@ -1,15 +1,13 @@
 import type { Clone, CloneConsultation } from "@/lib/core/types";
-import { mockClones, mockMemories } from "@/lib/memory/mock-data";
+import { mockClones, mockMemories } from "@backend/memory/mock-data";
 import { buildSystemPrompt } from "./clone-brain";
+import { listClonesForApi } from "@backend/memory/clone-repository";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { isSupabaseConfigured } from "@backend/memory/flags";
 
 const MAX_HOPS = 2;
 const MAX_CONSULTS_PER_QUESTION = 3;
 const CONSULTATION_TIMEOUT_MS = 15000;
-
-function isSupabaseConfigured(): boolean {
-  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-}
 
 export interface ConsultationRequest {
   callerCloneId: string;
@@ -19,13 +17,31 @@ export interface ConsultationRequest {
   conversationId: string;
 }
 
+export async function listConsultableClones(
+  callerCloneId: string
+): Promise<Clone[]> {
+  try {
+    const clones = (await listClonesForApi()) as Clone[];
+    const filtered = clones.filter(
+      (clone) => clone.id !== callerCloneId && clone.status === "active"
+    );
+    if (filtered.length > 0) return filtered;
+  } catch (error) {
+    console.warn("Falling back to mock consultable clones:", error);
+  }
+  return mockClones.filter(
+    (clone) => clone.id !== callerCloneId && clone.status === "active"
+  );
+}
+
 export function findCloneByExpertise(
   topic: string,
-  excludeCloneId: string
+  excludeCloneId: string,
+  clones: Clone[] = mockClones
 ): Clone | null {
   const topicLower = topic.toLowerCase();
   return (
-    mockClones.find((c) => {
+    clones.find((c) => {
       if (c.id === excludeCloneId) return false;
       if (c.status !== "active") return false;
       const tagMatch = c.expertise_tags.some((tag) =>
@@ -37,10 +53,13 @@ export function findCloneByExpertise(
   );
 }
 
-export function findCloneByName(name: string): Clone | null {
+export function findCloneByName(
+  name: string,
+  clones: Clone[] = mockClones
+): Clone | null {
   const nameLower = name.toLowerCase();
   return (
-    mockClones.find(
+    clones.find(
       (c) =>
         c.name.toLowerCase().includes(nameLower) ||
         nameLower.includes(c.name.toLowerCase().split(" ")[0])
@@ -71,9 +90,14 @@ export async function consultClone(
   request: ConsultationRequest
 ): Promise<CloneConsultation> {
   const startTime = Date.now();
+  const consultableClones = await listConsultableClones(request.callerCloneId);
   const targetClone =
-    findCloneByName(request.targetCloneName) ||
-    findCloneByExpertise(request.query, request.callerCloneId);
+    findCloneByName(request.targetCloneName, consultableClones) ||
+    findCloneByExpertise(
+      request.query,
+      request.callerCloneId,
+      consultableClones
+    );
 
   if (!targetClone) {
     return {
@@ -143,12 +167,10 @@ async function generateConsultationResponse(
   }
 
   void query;
+  void buildSystemPrompt;
 
   return `Based on my knowledge: ${
     relevantFacts ||
     `As ${clone.name}, I can share that the current status aligns with our team's goals. Let me know if you need more specific details.`
   }`;
 }
-
-// Suppress unused variable warning - buildSystemPrompt is used in production path
-void buildSystemPrompt;
