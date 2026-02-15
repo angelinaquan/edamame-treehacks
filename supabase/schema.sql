@@ -43,7 +43,7 @@ CREATE TABLE documents (
   title TEXT NOT NULL,
   content TEXT,
   file_url TEXT,
-  doc_type TEXT CHECK (doc_type IN ('slack_message', 'document', 'meeting_notes', 'email')) DEFAULT 'document',
+  doc_type TEXT CHECK (doc_type IN ('slack_message', 'document', 'meeting_notes', 'email', 'notion_page', 'google_drive_file')) DEFAULT 'document',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -105,6 +105,42 @@ CREATE TABLE memories (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- GitHub context snapshots (raw structured payload for replay/debugging)
+CREATE TABLE github_context_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  clone_id UUID REFERENCES clones(id) ON DELETE CASCADE,
+  github_username TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Notion context snapshots (raw structured payload for replay/debugging)
+CREATE TABLE notion_context_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  clone_id UUID REFERENCES clones(id) ON DELETE CASCADE,
+  query TEXT,
+  payload JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Google Drive context snapshots (raw structured payload for replay/debugging)
+CREATE TABLE google_drive_context_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  clone_id UUID REFERENCES clones(id) ON DELETE CASCADE,
+  query TEXT,
+  payload JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Integration credentials (for SDK/API setup in-app)
+CREATE TABLE integration_credentials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider TEXT CHECK (provider IN ('slack', 'github', 'notion', 'google_drive', 'jira', 'email')) UNIQUE NOT NULL,
+  config JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Indexes for performance
 CREATE INDEX idx_chunks_clone_id ON chunks(clone_id);
 CREATE INDEX idx_chunks_embedding ON chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
@@ -113,3 +149,8 @@ CREATE INDEX idx_memories_embedding ON memories USING ivfflat (embedding vector_
 CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX idx_conversations_clone_id ON conversations(clone_id);
 CREATE INDEX idx_clone_interactions_conversation ON clone_interactions(conversation_id);
+CREATE INDEX idx_github_snapshots_clone_id ON github_context_snapshots(clone_id);
+CREATE INDEX idx_github_snapshots_username ON github_context_snapshots(github_username);
+CREATE INDEX idx_notion_snapshots_clone_id ON notion_context_snapshots(clone_id);
+CREATE INDEX idx_google_drive_snapshots_clone_id ON google_drive_context_snapshots(clone_id);
+CREATE INDEX idx_integration_credentials_provider ON integration_credentials(provider);

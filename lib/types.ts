@@ -45,7 +45,13 @@ export interface Document {
   title: string;
   content: string;
   file_url?: string;
-  doc_type: "slack_message" | "document" | "meeting_notes" | "email";
+  doc_type:
+    | "slack_message"
+    | "document"
+    | "meeting_notes"
+    | "email"
+    | "notion_page"
+    | "google_drive_file";
   created_at: string;
 }
 
