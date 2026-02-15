@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.redirect(
-      `${settingsUrl}?google_connected=true`
+      `${baseUrl}/auth/complete?email=${encodeURIComponent(userEmail)}`
     );
   } catch (err) {
     const message =
