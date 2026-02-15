@@ -65,42 +65,36 @@ function summarizeFacts(facts: string[]): string {
   return facts.slice(0, 3).join(" ").trim();
 }
 
+function estimateItemAndCategoryCounts(resources: MemoryResourceInput[]): {
+  itemsCount: number;
+  categoriesCount: number;
+} {
+  let itemsCount = 0;
+  const categoryKeys = new Set<string>();
+
+  for (const resource of resources) {
+    const facts = extractFacts(resource.content);
+    itemsCount += facts.length > 0 ? facts.length : 1;
+    categoryKeys.add(
+      `${toCategoryType(resource.source_type)}::${inferCategoryKey(resource)}`
+    );
+  }
+
+  return {
+    itemsCount,
+    categoriesCount: categoryKeys.size,
+  };
+}
+
 export async function POST(request: NextRequest) {
   let runId: string | null = null;
   try {
-    if (!isSupabaseConfigured()) {
-      return NextResponse.json(
-        {
-          error:
-            "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
-        },
-        { status: 500 }
-      );
-    }
-
     const payload = (await request.json()) as SyntheticIngestRequest;
     const memoryProvider = getMemoryProvider();
     const cloneId = payload.cloneId;
     if (!cloneId) {
       return NextResponse.json(
         { error: "cloneId is required for synthetic ingestion." },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createServerSupabaseClient();
-    const { data: clone, error: cloneError } = await supabase
-      .from("clones")
-      .select("id")
-      .eq("id", cloneId)
-      .maybeSingle();
-
-    if (cloneError || !clone) {
-      return NextResponse.json(
-        {
-          error:
-            "Clone not found in Supabase. Provide a valid clones.id UUID before ingest.",
-        },
         { status: 400 }
       );
     }
@@ -135,6 +129,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const { itemsCount, categoriesCount } = estimateItemAndCategoryCounts(
+      generated.resources
+    );
+
     let mem0Sync: Awaited<ReturnType<typeof syncResourcesToMem0>> | null = null;
     if (memoryProvider === "mem0") {
       mem0Sync = await syncResourcesToMem0(cloneId, generated.resources);
@@ -143,6 +141,55 @@ export async function POST(request: NextRequest) {
           `Mem0 sync failed for all resources: ${mem0Sync.errors.join(" | ")}`
         );
       }
+    }
+
+    if (!isSupabaseConfigured()) {
+      if (memoryProvider === "mem0") {
+        return NextResponse.json({
+          success: true,
+          run_id: null,
+          memory_provider: memoryProvider,
+          supabase_projection_skipped: true,
+          seed: generated.seed,
+          counts: {
+            generated_resources: generated.resources.length,
+            generated_items: itemsCount,
+            generated_categories: categoriesCount,
+            projected_documents: 0,
+            projected_chunks: 0,
+            projected_memories: 0,
+          },
+          by_source: generated.counts,
+          mem0_sync: mem0Sync,
+          message:
+            "Mem0 sync succeeded. Supabase projection skipped because Supabase is not configured.",
+        });
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createServerSupabaseClient();
+    const { data: clone, error: cloneError } = await supabase
+      .from("clones")
+      .select("id")
+      .eq("id", cloneId)
+      .maybeSingle();
+
+    if (cloneError || !clone) {
+      return NextResponse.json(
+        {
+          error:
+            "Clone not found in Supabase. Provide a valid clones.id UUID before ingest.",
+        },
+        { status: 400 }
+      );
     }
 
     const { data: run, error: runError } = await supabase
@@ -356,8 +403,8 @@ export async function POST(request: NextRequest) {
       seed: generated.seed,
       counts: {
         generated_resources: insertedResources.length,
-        generated_items: insertedItems.length,
-        generated_categories: categoryRows.length,
+        generated_items: itemsCount,
+        generated_categories: categoriesCount,
         projected_documents: projectedDocumentsCount,
         projected_chunks: projectedChunksCount,
         projected_memories: memoriesToInsert.length,

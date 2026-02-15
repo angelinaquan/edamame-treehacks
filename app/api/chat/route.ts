@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import getOpenAIClient from "@/lib/openai";
 import { buildSystemPrompt } from "@/lib/agent";
-import { mockClones, getActiveReminders, mockMeetings } from "@/lib/mock-data";
+import { getActiveReminders, mockMeetings } from "@/lib/mock-data";
 import { getCloneRuntime } from "@/lib/clone-repository";
-import { canConsult, consultClone } from "@/lib/collaboration";
+import { canConsult, consultClone, listConsultableClones } from "@/lib/collaboration";
 import { getKnowledgeContext } from "@/lib/memory";
 
 export async function POST(request: NextRequest) {
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       response: string;
     } | null = null;
     const messageText = message || "";
-    const otherClones = mockClones.filter((c) => c.id !== clone.id);
+    const otherClones = await listConsultableClones(clone.id);
 
     for (const otherClone of otherClones) {
       const firstName = otherClone.name.split(" ")[0].toLowerCase();

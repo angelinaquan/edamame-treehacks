@@ -1,6 +1,9 @@
 import type { Clone, CloneConsultation } from "./types";
 import { mockClones, mockMemories } from "./mock-data";
 import { buildSystemPrompt } from "./agent";
+import { listClonesForApi } from "./clone-repository";
+import { createServerSupabaseClient } from "./supabase/server";
+import { isSupabaseConfigured } from "./flags";
 
 const MAX_HOPS = 2;
 const MAX_CONSULTS_PER_QUESTION = 3;
@@ -14,13 +17,31 @@ export interface ConsultationRequest {
   conversationId: string;
 }
 
+export async function listConsultableClones(
+  callerCloneId: string
+): Promise<Clone[]> {
+  try {
+    const clones = (await listClonesForApi()) as Clone[];
+    const filtered = clones.filter(
+      (clone) => clone.id !== callerCloneId && clone.status === "active"
+    );
+    if (filtered.length > 0) return filtered;
+  } catch (error) {
+    console.warn("Falling back to mock consultable clones:", error);
+  }
+  return mockClones.filter(
+    (clone) => clone.id !== callerCloneId && clone.status === "active"
+  );
+}
+
 export function findCloneByExpertise(
   topic: string,
-  excludeCloneId: string
+  excludeCloneId: string,
+  clones: Clone[] = mockClones
 ): Clone | null {
   const topicLower = topic.toLowerCase();
   return (
-    mockClones.find((c) => {
+    clones.find((c) => {
       if (c.id === excludeCloneId) return false;
       if (c.status !== "active") return false;
       const tagMatch = c.expertise_tags.some((tag) =>
@@ -32,10 +53,13 @@ export function findCloneByExpertise(
   );
 }
 
-export function findCloneByName(name: string): Clone | null {
+export function findCloneByName(
+  name: string,
+  clones: Clone[] = mockClones
+): Clone | null {
   const nameLower = name.toLowerCase();
   return (
-    mockClones.find(
+    clones.find(
       (c) =>
         c.name.toLowerCase().includes(nameLower) ||
         nameLower.includes(c.name.toLowerCase().split(" ")[0])
@@ -66,9 +90,14 @@ export async function consultClone(
   request: ConsultationRequest
 ): Promise<CloneConsultation> {
   const startTime = Date.now();
+  const consultableClones = await listConsultableClones(request.callerCloneId);
   const targetClone =
-    findCloneByName(request.targetCloneName) ||
-    findCloneByExpertise(request.query, request.callerCloneId);
+    findCloneByName(request.targetCloneName, consultableClones) ||
+    findCloneByExpertise(
+      request.query,
+      request.callerCloneId,
+      consultableClones
+    );
 
   if (!targetClone) {
     return {
@@ -116,7 +145,28 @@ async function generateConsultationResponse(
   query: string
 ): Promise<string> {
   const cloneMemories = mockMemories.filter((m) => m.clone_id === clone.id);
-  const relevantFacts = cloneMemories.map((m) => m.fact).join(". ");
+  let relevantFacts = cloneMemories.map((m) => m.fact).join(". ");
+
+  if (!relevantFacts && isSupabaseConfigured()) {
+    try {
+      const supabase = createServerSupabaseClient();
+      const { data } = await supabase
+        .from("memories")
+        .select("fact")
+        .eq("clone_id", clone.id)
+        .order("created_at", { ascending: false })
+        .limit(6);
+      relevantFacts =
+        (data || [])
+          .map((row: { fact: string }) => row.fact)
+          .filter(Boolean)
+          .join(". ") || "";
+    } catch {
+      // Fall back to generic response below.
+    }
+  }
+
+  void query;
 
   return `Based on my knowledge: ${
     relevantFacts ||
