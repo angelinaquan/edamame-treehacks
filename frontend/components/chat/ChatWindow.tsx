@@ -15,8 +15,8 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({
-  cloneId = "clone_self",
-  cloneName = "Alex Morgan",
+  cloneId = "",
+  cloneName = "AI Clone",
   onVoiceResponse,
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);

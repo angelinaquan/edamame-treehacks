@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       isProactiveDebrief = false,
     } = await request.json();
 
-    const runtime = await getCloneRuntime(cloneId || "clone_self");
+    const runtime = await getCloneRuntime(cloneId);
     const clone = runtime.clone;
     if (!clone) {
       return NextResponse.json({ error: "Clone not found" }, { status: 404 });

@@ -46,7 +46,7 @@ export async function GET() {
       return {
         employee: {
           id: clone.id,
-          name: `${clone.name} [Twin Clone]`,
+          name: clone.name,
           role: clone.owner_role || expertiseAreas[0] || "Team Member",
           team: clone.owner_department || expertiseAreas[0] || "General",
           tenure: "",

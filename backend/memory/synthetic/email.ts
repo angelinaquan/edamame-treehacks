@@ -73,7 +73,7 @@ function buildSpicyEmail(
     .filter(p => p.id !== fromPerson.email && p.email !== toPerson.email)
     .slice(0, rng.int(2, 5))
     .map(p => p.email);
-  const boss = rng.pick(world.people.filter(p => p.role.includes("VP") || p.role.includes("CTO")));
+  const boss = rng.pick(world.people.filter(p => p.email !== fromPerson.email && p.email !== toPerson.email));
 
   const templates = [
     // CC-the-boss escalation

@@ -15,7 +15,12 @@ export default function MyClonePage() {
   useEffect(() => {
     async function fetchMyClone() {
       try {
-        const res = await fetch("/api/clones/clone_self");
+        // Fetch all clones and use the first active one
+        const listRes = await fetch("/api/clones");
+        const listData = await listRes.json();
+        const firstClone = listData.clones?.[0];
+        if (!firstClone) return;
+        const res = await fetch(`/api/clones/${firstClone.id}`);
         const data = await res.json();
         setClone(data.clone);
       } catch (err) {
