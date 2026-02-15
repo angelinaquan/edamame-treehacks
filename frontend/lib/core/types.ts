@@ -1,6 +1,6 @@
 export type CloneStatus = "untrained" | "training" | "active" | "inactive";
 export type MessageRole = "user" | "assistant" | "system";
-export type MemoryType = "document" | "chunk" | "fact" | "snapshot" | "category";
+export type MemoryType = "document" | "chunk" | "fact" | "snapshot" | "category" | "episodic";
 export type MemorySource =
   | "slack"
   | "notion"
@@ -52,6 +52,20 @@ export interface Memory {
 }
 
 export interface MemoryInput extends Omit<Memory, "id" | "created_at"> {}
+
+// Episodic memory metadata shape
+export type EpisodicEventType = "meeting" | "incident" | "decision" | "launch" | "conversation" | "review";
+export type EmotionalValence = "positive" | "neutral" | "negative" | "mixed";
+
+export interface EpisodicMetadata {
+  event_type: EpisodicEventType;
+  participants: string[];
+  location?: string;
+  emotional_valence: EmotionalValence;
+  causal_context?: string;
+  outcome?: string;
+  conversation_id?: string;
+}
 
 // Convenience accessors for metadata fields used across the codebase
 export function memoryFact(m: Memory): string {

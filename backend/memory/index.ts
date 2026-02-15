@@ -10,7 +10,7 @@
  *  - Contradiction detection and deduplication
  */
 
-import type { Chunk, Memory } from "@/lib/core/types";
+import type { Chunk, Memory, EpisodicMetadata, EpisodicEventType, EmotionalValence } from "@/lib/core/types";
 import { mockMemories, mockDocuments } from "./mock-data";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
 import {
@@ -59,6 +59,15 @@ export interface KnowledgeContext {
     occurred_at: string;
     content: string;
   }>;
+  episodes: Array<{
+    content: string;
+    event_type: string;
+    participants: string[];
+    emotional_valence: string;
+    occurred_at: string;
+    outcome?: string;
+    location?: string;
+  }>;
 }
 
 export interface CompactionResult {
@@ -71,6 +80,12 @@ export interface ConversationLearningResult {
   factsExtracted: number;
   factsSaved: number;
   factsReinforced: number;
+}
+
+export interface EpisodicLearningResult {
+  episodesExtracted: number;
+  episodesSaved: number;
+  episodesReinforced: number;
 }
 
 export function isSupabaseMemoryEnabled(): boolean {
@@ -110,6 +125,18 @@ function recencyBonus(occurredAt: string): number {
   const ageDays = ageMs / (1000 * 60 * 60 * 24);
   // Half-life of ~3 days, max bonus 0.3
   return 0.3 * Math.exp(-ageDays / 3);
+}
+
+/**
+ * Stronger recency bonus for episodic memories: events from the last hour
+ * get +0.5, decaying to 0 over 14 days. Episodes are time-anchored so
+ * recency matters more than for facts.
+ */
+function episodicRecencyBonus(occurredAt: string): number {
+  const ageMs = Date.now() - new Date(occurredAt).getTime();
+  const ageDays = ageMs / (1000 * 60 * 60 * 24);
+  // Half-life of ~2 days, max bonus 0.5
+  return 0.5 * Math.exp(-ageDays / 2);
 }
 
 /**
@@ -194,6 +221,200 @@ export function saveFact(
     created_at: new Date().toISOString(),
   };
   return memory;
+}
+
+// ---------------------------------------------------------------------------
+// Episodic memory extraction
+// ---------------------------------------------------------------------------
+
+/** Patterns that indicate an event/episode rather than a bare fact. */
+const EPISODE_PATTERNS: RegExp[] = [
+  /\b(?:we|they|the team|everyone)\s+(?:met|discussed|decided|agreed|reviewed|launched|shipped|resolved)\b/i,
+  /\b(?:meeting|standup|retro|retrospective|all-hands|offsite|sync|debrief|post-mortem|review|demo|kickoff)\b/i,
+  /\b(?:yesterday|last\s+(?:week|month|monday|tuesday|wednesday|thursday|friday))\b/i,
+  /\b(?:outage|incident|downtime|p[0-2]|SEV-?\d)\b/i,
+  /\b(?:shipped|deployed|released|launched|rolled out|went live)\b/i,
+  /\b(?:I met with|spoke with|called|chatted with|had a call)\b/i,
+  /\b(?:announced|presented|pitched|proposed|raised|flagged|escalated)\b/i,
+];
+
+/** Try to infer the event type from episode content. */
+function inferEventType(content: string): EpisodicEventType {
+  const lower = content.toLowerCase();
+  if (/\b(?:meeting|standup|sync|all-hands|offsite|call|debrief)\b/.test(lower)) return "meeting";
+  if (/\b(?:outage|incident|downtime|p[0-2]|sev-?\d|post-mortem)\b/.test(lower)) return "incident";
+  if (/\b(?:decided|agreed|approved|vetoed|voted|chose)\b/.test(lower)) return "decision";
+  if (/\b(?:shipped|deployed|released|launched|went live|rolled out)\b/.test(lower)) return "launch";
+  if (/\b(?:retro|retrospective|review|demo|feedback)\b/.test(lower)) return "review";
+  return "conversation";
+}
+
+/** Try to infer emotional valence from content. */
+function inferValence(content: string): EmotionalValence {
+  const lower = content.toLowerCase();
+  const positiveSignals = (lower.match(/\b(?:great|excited|happy|success|won|positive|celebrate|awesome|nailed|shipped)\b/g) || []).length;
+  const negativeSignals = (lower.match(/\b(?:failed|broken|angry|frustrated|blocked|bad|concern|worried|outage|incident|risk)\b/g) || []).length;
+  if (positiveSignals > 0 && negativeSignals > 0) return "mixed";
+  if (positiveSignals > negativeSignals) return "positive";
+  if (negativeSignals > positiveSignals) return "negative";
+  return "neutral";
+}
+
+/** Extract participant names from content using common patterns. */
+function extractParticipants(content: string): string[] {
+  const patterns = [
+    /(?:with|from|by|and)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/g,
+    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:said|mentioned|noted|suggested|proposed|flagged|raised|presented|argued)/g,
+    /(?:told|asked|informed|emailed|pinged|DMed)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/g,
+  ];
+  const names = new Set<string>();
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(content)) !== null) {
+      const name = match[1].trim();
+      // Filter out common false positives
+      if (name.length > 2 && !/^(The|This|That|They|We|It|He|She|But|And|Also|Then|When|After|Before|During)$/i.test(name)) {
+        names.add(name);
+      }
+    }
+  }
+  return Array.from(names).slice(0, 8);
+}
+
+/** Extract outcome/result phrases from content. */
+function extractOutcome(content: string): string | undefined {
+  const outcomePatterns = [
+    /(?:outcome|result|decision|conclusion|agreed to|decided to|will|action item)[:\s]+(.{20,120})/i,
+    /(?:next step|follow.up|takeaway)[:\s]+(.{20,120})/i,
+  ];
+  for (const pattern of outcomePatterns) {
+    const match = content.match(pattern);
+    if (match) return match[1].trim().replace(/[.!?]+$/, "");
+  }
+  return undefined;
+}
+
+/**
+ * Extract episodic memories from content. Returns sentences/passages that
+ * describe specific events, meetings, incidents, decisions, etc.
+ */
+export function extractEpisodes(content: string): string[] {
+  const sentences = content
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 25);
+
+  return sentences.filter((s) =>
+    EPISODE_PATTERNS.some((p) => p.test(s))
+  );
+}
+
+/**
+ * Extract episodic memories from a conversation and persist them to Supabase.
+ * Performs deduplication via vector similarity (threshold 0.85).
+ *
+ * Fire-and-forget safe — all errors are caught and logged.
+ */
+export async function learnEpisodesFromConversation(
+  cloneId: string,
+  userMessage: string,
+  conversationId: string,
+  source: string = "conversation"
+): Promise<EpisodicLearningResult> {
+  const result: EpisodicLearningResult = {
+    episodesExtracted: 0,
+    episodesSaved: 0,
+    episodesReinforced: 0,
+  };
+
+  if (!isSupabaseAvailable()) return result;
+
+  const episodes = extractEpisodes(userMessage);
+  if (episodes.length === 0) return result;
+  result.episodesExtracted = episodes.length;
+
+  const supabase = createServerSupabaseClient();
+
+  // Try to generate embeddings for dedup
+  let embeddings: number[][] = [];
+  try {
+    const { generateEmbeddings } = await import("@/lib/agents/openai");
+    embeddings = await generateEmbeddings(episodes);
+  } catch {
+    // Embedding generation unavailable — skip dedup, still save episodes
+  }
+
+  for (let i = 0; i < episodes.length; i++) {
+    const episodeContent = episodes[i];
+    const embedding = embeddings[i] || null;
+
+    // Dedup: check for near-duplicate episodic memory
+    if (embedding) {
+      const duplicates = await vectorSearch(
+        supabase,
+        embedding,
+        cloneId,
+        "episodic",
+        0.85,
+        1
+      );
+
+      if (duplicates && duplicates.length > 0) {
+        // Reinforce existing episode
+        const existing = duplicates[0];
+        const newConfidence = Math.min((existing.confidence || 0.5) + 0.05, 0.99);
+        const existingMeta =
+          existing.metadata && typeof existing.metadata === "object"
+            ? existing.metadata
+            : {};
+        await supabase
+          .from("memories")
+          .update({
+            confidence: newConfidence,
+            metadata: {
+              ...existingMeta,
+              last_reinforced: new Date().toISOString(),
+              reinforcement_count:
+                ((existingMeta.reinforcement_count as number) || 0) + 1,
+            },
+          })
+          .eq("id", existing.id);
+        result.episodesReinforced++;
+        continue;
+      }
+    }
+
+    // Build episodic metadata
+    const episodicMeta: EpisodicMetadata & Record<string, unknown> = {
+      event_type: inferEventType(episodeContent),
+      participants: extractParticipants(episodeContent),
+      emotional_valence: inferValence(episodeContent),
+      outcome: extractOutcome(episodeContent),
+      conversation_id: conversationId,
+    };
+
+    const insertData: Record<string, unknown> = {
+      clone_id: cloneId,
+      type: "episodic",
+      source,
+      content: episodeContent,
+      confidence: 0.7,
+      metadata: episodicMeta,
+      occurred_at: new Date().toISOString(),
+    };
+    if (embedding) {
+      insertData.embedding = JSON.stringify(embedding);
+    }
+
+    const { error } = await supabase.from("memories").insert(insertData);
+    if (!error) {
+      result.episodesSaved++;
+    } else {
+      console.error("[memory] Failed to save episode:", error.message);
+    }
+  }
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -290,11 +511,13 @@ export async function getKnowledgeContext(
   const queryEmbedding = await tryGenerateQueryEmbedding(query);
   let vectorItems: VectorMatchRow[] | null = null;
   let vectorChunks: VectorMatchRow[] | null = null;
+  let vectorEpisodes: VectorMatchRow[] | null = null;
 
   if (queryEmbedding) {
-    [vectorItems, vectorChunks] = await Promise.all([
+    [vectorItems, vectorChunks, vectorEpisodes] = await Promise.all([
       vectorSearch(supabase, queryEmbedding, cloneId, "fact", 0.4, topK * 3),
       vectorSearch(supabase, queryEmbedding, cloneId, "chunk", 0.4, topK * 3),
+      vectorSearch(supabase, queryEmbedding, cloneId, "episodic", 0.35, topK * 2),
     ]);
   }
 
@@ -309,7 +532,7 @@ export async function getKnowledgeContext(
     .filter((t) => t.length >= 3)
     .slice(0, 6);
 
-  // Always fetch categories and resources via keyword (they don't need vector search)
+  // Always fetch categories, resources, and episodic memories via keyword
   const categoryQuery = supabase
     .from("memories")
     .select("content, confidence, metadata, occurred_at")
@@ -325,6 +548,23 @@ export async function getKnowledgeContext(
     .in("type", ["document", "snapshot"])
     .order("occurred_at", { ascending: false })
     .limit(6);
+
+  // Always fetch episodic memories (keyword fallback if vector didn't find any)
+  let keywordEpisodesPromise: ReturnType<typeof supabase.from> | null = null;
+  if (!vectorEpisodes || vectorEpisodes.length === 0) {
+    let episodeQuery = supabase
+      .from("memories")
+      .select("content, confidence, source, occurred_at, metadata")
+      .eq("clone_id", cloneId)
+      .eq("type", "episodic")
+      .order("occurred_at", { ascending: false })
+      .limit(topK * 2);
+
+    if (terms.length > 0) {
+      episodeQuery = episodeQuery.or(buildIlikeOr("content", terms));
+    }
+    keywordEpisodesPromise = episodeQuery;
+  }
 
   // If vector search didn't work, fetch items/chunks via keyword
   let keywordItemsPromise: ReturnType<typeof supabase.from> | null = null;
@@ -357,10 +597,13 @@ export async function getKnowledgeContext(
 
   // Execute all queries in parallel
   const promises: Promise<{ data: unknown }>[] = [categoryQuery, resourceQuery];
+  if (keywordEpisodesPromise) promises.push(keywordEpisodesPromise);
   if (keywordItemsPromise) promises.push(keywordItemsPromise);
   if (keywordChunksPromise) promises.push(keywordChunksPromise);
 
   const results = await Promise.all(promises);
+  let resultIdx = 2; // 0 = categories, 1 = resources
+
   const categories = results[0].data as Array<{
     content: string;
     confidence: number | null;
@@ -373,8 +616,18 @@ export async function getKnowledgeContext(
     metadata: Record<string, unknown>;
     occurred_at: string;
   }> | null;
+
+  const keywordEpisodes = keywordEpisodesPromise
+    ? (results[resultIdx++].data as Array<{
+        content: string;
+        confidence: number | null;
+        source: string;
+        occurred_at: string;
+        metadata: Record<string, unknown>;
+      }> | null)
+    : null;
   const keywordItems = keywordItemsPromise
-    ? (results[2].data as Array<{
+    ? (results[resultIdx++].data as Array<{
         content: string;
         confidence: number | null;
         source: string;
@@ -383,7 +636,7 @@ export async function getKnowledgeContext(
       }> | null)
     : null;
   const keywordChunks = keywordChunksPromise
-    ? (results[promises.length - 1].data as Chunk[] | null)
+    ? (results[resultIdx++].data as Chunk[] | null)
     : null;
 
   // 4. Build items from vector search OR keyword fallback, re-ranked by relevance
@@ -431,6 +684,36 @@ export async function getKnowledgeContext(
     finalChunks = (keywordChunks as Chunk[]) || [];
   }
 
+  // 6. Build episodes from vector search OR keyword fallback, with temporal boosting
+  let finalEpisodes: KnowledgeContext["episodes"];
+  if (vectorEpisodes && vectorEpisodes.length > 0) {
+    finalEpisodes = vectorEpisodes
+      .map((row) => ({
+        content: row.content,
+        event_type: (row.metadata?.event_type as string) || "conversation",
+        participants: (row.metadata?.participants as string[]) || [],
+        emotional_valence: (row.metadata?.emotional_valence as string) || "neutral",
+        occurred_at: row.occurred_at,
+        outcome: row.metadata?.outcome as string | undefined,
+        location: row.metadata?.location as string | undefined,
+        _score: (row.similarity ?? row.confidence ?? 0.5) + episodicRecencyBonus(row.occurred_at),
+      }))
+      .sort((a, b) => b._score - a._score)
+      .slice(0, topK)
+      .map(({ _score: _, ...rest }) => rest);
+  } else {
+    finalEpisodes =
+      keywordEpisodes?.map((row) => ({
+        content: row.content,
+        event_type: (row.metadata?.event_type as string) || "conversation",
+        participants: (row.metadata?.participants as string[]) || [],
+        emotional_valence: (row.metadata?.emotional_valence as string) || "neutral",
+        occurred_at: row.occurred_at,
+        outcome: row.metadata?.outcome as string | undefined,
+        location: row.metadata?.location as string | undefined,
+      })) || [];
+  }
+
   return {
     categories:
       categories?.map((row) => ({
@@ -448,6 +731,7 @@ export async function getKnowledgeContext(
         occurred_at: row.occurred_at,
         content: row.content,
       })) || [],
+    episodes: finalEpisodes,
   };
 }
 

@@ -47,11 +47,11 @@ CREATE TABLE clones (
   trained_at TIMESTAMPTZ
 );
 
--- Memories (all clone knowledge: documents, chunks, facts, snapshots, categories)
+-- Memories (all clone knowledge: documents, chunks, facts, snapshots, categories, episodic)
 CREATE TABLE memories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clone_id UUID REFERENCES clones(id) ON DELETE CASCADE,
-  type TEXT CHECK (type IN ('document', 'chunk', 'fact', 'snapshot', 'category')) NOT NULL,
+  type TEXT CHECK (type IN ('document', 'chunk', 'fact', 'snapshot', 'category', 'episodic')) NOT NULL,
   source TEXT CHECK (source IN ('slack', 'notion', 'github', 'gdrive', 'email', 'jira', 'voice', 'conversation', 'manual')) DEFAULT 'manual',
   content TEXT NOT NULL,
   embedding VECTOR(1536),

@@ -20,14 +20,16 @@ CREATE TABLE clones (
   trained_at TIMESTAMPTZ
 );
 
--- Memories (all clone knowledge: documents, chunks, facts, snapshots, categories)
+-- Memories (all clone knowledge: documents, chunks, facts, snapshots, categories, episodic)
 --   type: what kind of memory this is
 --   source: where it came from
 --   metadata: type-specific fields (title, author, channel_id, repo, doc_type, etc.)
+--   For type='episodic', metadata contains: event_type, participants, location,
+--     emotional_valence, causal_context, outcome, conversation_id
 CREATE TABLE memories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clone_id UUID REFERENCES clones(id) ON DELETE CASCADE,
-  type TEXT CHECK (type IN ('document', 'chunk', 'fact', 'snapshot', 'category')) NOT NULL,
+  type TEXT CHECK (type IN ('document', 'chunk', 'fact', 'snapshot', 'category', 'episodic')) NOT NULL,
   source TEXT CHECK (source IN ('slack', 'notion', 'github', 'gdrive', 'email', 'jira', 'voice', 'conversation', 'manual')) DEFAULT 'manual',
   content TEXT NOT NULL,
   embedding VECTOR(1536),

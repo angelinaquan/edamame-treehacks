@@ -273,5 +273,6 @@ export async function searchMem0KnowledgeContext(
     })),
     chunks: [],
     resources,
+    episodes: [],
   };
 }

@@ -1,13 +1,50 @@
 import type { Clone, CloneConsultation } from "@/lib/core/types";
-import { mockClones, mockMemories } from "@backend/memory/mock-data";
+import type { ChatCompletionTool } from "openai/resources/chat/completions";
+import { mockClones } from "@backend/memory/mock-data";
 import { buildSystemPrompt } from "./clone-brain";
-import { listClonesForApi } from "@backend/memory/clone-repository";
-import { createServerSupabaseClient } from "@/lib/core/supabase/server";
-import { isSupabaseConfigured } from "@backend/memory/flags";
+import { getCloneRuntime, listClonesForApi } from "@backend/memory/clone-repository";
+import { getKnowledgeContext } from "@backend/memory";
+import getOpenAIClient from "./openai";
 
 const MAX_HOPS = 2;
 const MAX_CONSULTS_PER_QUESTION = 3;
-const CONSULTATION_TIMEOUT_MS = 15000;
+const CONSULTATION_TIMEOUT_MS = 20000;
+
+// ---------------------------------------------------------------------------
+// OpenAI function-calling tool definition
+// ---------------------------------------------------------------------------
+
+export const CONSULT_CLONE_TOOL: ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "consult_clone",
+    description:
+      "Consult another team member's AI clone when you don't have enough information to answer a question. " +
+      "Use this when the question is about a topic outside your expertise, about another person's work, " +
+      "projects, or decisions, or when you're unsure and another colleague might know.",
+    parameters: {
+      type: "object",
+      properties: {
+        topic: {
+          type: "string",
+          description:
+            "The specific topic or question to ask the other clone. Be precise so they can give a useful answer.",
+        },
+        clone_name: {
+          type: "string",
+          description:
+            "Optional: the name of the specific person whose clone to consult. " +
+            "If omitted, the system will route to the most relevant clone based on the topic.",
+        },
+      },
+      required: ["topic"],
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 export interface ConsultationRequest {
   callerCloneId: string;
@@ -16,6 +53,10 @@ export interface ConsultationRequest {
   depth: number;
   conversationId: string;
 }
+
+// ---------------------------------------------------------------------------
+// Clone discovery
+// ---------------------------------------------------------------------------
 
 export async function listConsultableClones(
   callerCloneId: string
@@ -34,23 +75,59 @@ export async function listConsultableClones(
   );
 }
 
+/**
+ * Score each clone's relevance to a topic using expertise tag overlap
+ * and name matching. Returns clones sorted by score descending.
+ */
+function scoreCloneRelevance(
+  topic: string,
+  excludeCloneId: string,
+  clones: Clone[]
+): { clone: Clone; score: number }[] {
+  const topicWords = topic.toLowerCase().split(/\s+/);
+
+  return clones
+    .filter((c) => c.id !== excludeCloneId && c.status === "active")
+    .map((c) => {
+      let score = 0;
+
+      // Tag matching: each matching tag adds a point
+      for (const tag of c.expertise_tags) {
+        const tagLower = tag.toLowerCase();
+        if (topic.toLowerCase().includes(tagLower)) {
+          score += 2;
+        } else if (topicWords.some((w) => tagLower.includes(w) || w.includes(tagLower))) {
+          score += 1;
+        }
+      }
+
+      // Role/department matching
+      if (c.owner_role && topic.toLowerCase().includes(c.owner_role.toLowerCase())) {
+        score += 1;
+      }
+      if (c.owner_department && topic.toLowerCase().includes(c.owner_department.toLowerCase())) {
+        score += 1;
+      }
+
+      // Name mentioned explicitly
+      const firstName = c.name.split(" ")[0].toLowerCase();
+      if (topic.toLowerCase().includes(firstName)) {
+        score += 5;
+      }
+
+      return { clone: c, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+}
+
 export function findCloneByExpertise(
   topic: string,
   excludeCloneId: string,
   clones: Clone[] = mockClones
 ): Clone | null {
-  const topicLower = topic.toLowerCase();
-  return (
-    clones.find((c) => {
-      if (c.id === excludeCloneId) return false;
-      if (c.status !== "active") return false;
-      const tagMatch = c.expertise_tags.some((tag) =>
-        topicLower.includes(tag.toLowerCase())
-      );
-      const nameMatch = c.name.toLowerCase().includes(topicLower);
-      return tagMatch || nameMatch;
-    }) || null
-  );
+  const ranked = scoreCloneRelevance(topic, excludeCloneId, clones);
+  return ranked.length > 0 ? ranked[0].clone : null;
 }
 
 export function findCloneByName(
@@ -66,6 +143,10 @@ export function findCloneByName(
     ) || null
   );
 }
+
+// ---------------------------------------------------------------------------
+// Guard: hop / count limits
+// ---------------------------------------------------------------------------
 
 export function canConsult(
   depth: number,
@@ -86,25 +167,29 @@ export function canConsult(
   return { allowed: true };
 }
 
+// ---------------------------------------------------------------------------
+// Main consultation entry point
+// ---------------------------------------------------------------------------
+
 export async function consultClone(
   request: ConsultationRequest
 ): Promise<CloneConsultation> {
   const startTime = Date.now();
   const consultableClones = await listConsultableClones(request.callerCloneId);
+
+  // Resolve target: by name first, then by expertise/topic routing
   const targetClone =
-    findCloneByName(request.targetCloneName, consultableClones) ||
-    findCloneByExpertise(
-      request.query,
-      request.callerCloneId,
-      consultableClones
-    );
+    (request.targetCloneName
+      ? findCloneByName(request.targetCloneName, consultableClones)
+      : null) ||
+    findCloneByExpertise(request.query, request.callerCloneId, consultableClones);
 
   if (!targetClone) {
     return {
       target_clone_id: "unknown",
-      target_clone_name: request.targetCloneName,
+      target_clone_name: request.targetCloneName || "unknown",
       query: request.query,
-      response: `I couldn't find a clone matching "${request.targetCloneName}" to consult.`,
+      response: `I couldn't find a relevant clone to consult about "${request.query}".`,
       latency_ms: Date.now() - startTime,
     };
   }
@@ -138,39 +223,68 @@ export async function consultClone(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Real LLM-powered consultation response
+// ---------------------------------------------------------------------------
+
 async function generateConsultationResponse(
   clone: Clone,
   query: string
 ): Promise<string> {
-  const cloneMemories = mockMemories.filter((m) => m.clone_id === clone.id);
-  let relevantFacts = cloneMemories.map((m) => m.fact).join(". ");
+  // 1. Load the target clone's runtime and knowledge context
+  const runtime = await getCloneRuntime(clone.id);
+  const knowledge = await getKnowledgeContext(clone.id, query, 5);
 
-  // Try Supabase if mock data has nothing
-  if (!relevantFacts && isSupabaseConfigured()) {
-    try {
-      const supabase = createServerSupabaseClient();
-      const { data } = await supabase
-        .from("memories")
-        .select("content")
-        .eq("clone_id", clone.id)
-        .eq("type", "fact")
-        .order("created_at", { ascending: false })
-        .limit(6);
-      relevantFacts =
-        (data || [])
-          .map((row: { content: string }) => row.content)
-          .filter(Boolean)
-          .join(". ") || "";
-    } catch {
-      // Fall back to generic response below.
-    }
-  }
+  // 2. Build a full system prompt for the target clone (same quality as primary)
+  const systemPrompt = buildSystemPrompt(
+    clone,
+    knowledge
+      ? {
+          owner: runtime.owner,
+          memories: knowledge.items
+            .slice(0, 8)
+            .map(
+              (item) =>
+                `- ${item.fact} (confidence: ${item.confidence.toFixed(2)}, source: ${item.source_type})`
+            ),
+          slackMessages: knowledge.resources
+            .filter((r) => r.source_type === "slack")
+            .slice(0, 5)
+            .map((r) => `[slack] ${r.title || "message"}: ${r.content}`),
+          categorySummaries: knowledge.categories.map(
+            (cat) =>
+              `- ${cat.category_key}: ${cat.summary} (confidence: ${cat.confidence.toFixed(2)})`
+          ),
+          itemFacts: knowledge.items.slice(0, 8).map((item) => `- ${item.fact}`),
+          resourceHighlights: knowledge.resources
+            .filter((r) => r.source_type !== "slack")
+            .slice(0, 4)
+            .map((r) => `- [${r.source_type}] ${r.title || "resource"}: ${r.content}`),
+        }
+      : { owner: runtime.owner }
+  );
 
-  void query;
-  void buildSystemPrompt;
+  // 3. Call OpenAI with the target clone's persona and context
+  const openai = getOpenAIClient();
 
-  return `Based on my knowledge: ${
-    relevantFacts ||
-    `As ${clone.name}, I can share that the current status aligns with our team's goals. Let me know if you need more specific details.`
-  }`;
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content:
+          `A colleague's AI clone is asking you the following question on behalf of their owner. ` +
+          `Answer concisely and specifically based on your knowledge. If you don't know, say so.\n\n` +
+          `Question: ${query}`,
+      },
+    ],
+    temperature: 0.6,
+    max_tokens: 800,
+  });
+
+  return (
+    completion.choices[0]?.message?.content?.trim() ||
+    `As ${clone.name}, I don't have specific information about that topic right now.`
+  );
 }

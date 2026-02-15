@@ -5,6 +5,7 @@ import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { ThinkingPanel } from "./ThinkingPanel";
 import { CollaborationPanel } from "./CollaborationPanel";
+import type { PendingConsultation } from "./CollaborationPanel";
 import { NotificationBanner } from "./NotificationBanner";
 import type { Message, CloneConsultation } from "@/lib/core/types";
 
@@ -23,6 +24,8 @@ export function ChatWindow({
   const [isLoading, setIsLoading] = useState(false);
   const [thinkingSteps, setThinkingSteps] = useState<string[]>([]);
   const [consultations, setConsultations] = useState<CloneConsultation[]>([]);
+  const [pendingConsultation, setPendingConsultation] =
+    useState<PendingConsultation | null>(null);
   const [showNotification, setShowNotification] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -106,20 +109,34 @@ export function ChatWindow({
           try {
             const parsed = JSON.parse(data);
 
+            if (parsed.type === "consulting") {
+              // A consultation is starting — show the pending state
+              setPendingConsultation({
+                clone_name: parsed.clone_name || "a colleague",
+                topic: parsed.topic || "",
+              });
+              setThinkingSteps((prev) => [
+                ...prev,
+                `Consulting ${parsed.clone_name || "a colleague"}'s clone...`,
+              ]);
+            }
+
             if (parsed.type === "consultation") {
+              // Consultation completed — clear pending, add to completed list
+              setPendingConsultation(null);
               setConsultations((prev) => [
                 ...prev,
                 {
                   target_clone_id: "",
                   target_clone_name: parsed.consultation.target_clone_name,
-                  query: "",
+                  query: parsed.consultation.query || "",
                   response: parsed.consultation.response,
                   latency_ms: 0,
                 },
               ]);
               setThinkingSteps((prev) => [
                 ...prev,
-                `Consulting ${parsed.consultation.target_clone_name}'s clone...`,
+                `Got response from ${parsed.consultation.target_clone_name}'s clone`,
               ]);
             }
 
@@ -156,6 +173,7 @@ export function ChatWindow({
     } finally {
       setIsLoading(false);
       setThinkingSteps([]);
+      setPendingConsultation(null);
     }
   };
 
@@ -233,13 +251,18 @@ export function ChatWindow({
         </div>
 
         {/* Side panels */}
-        {(thinkingSteps.length > 0 || consultations.length > 0) && (
+        {(thinkingSteps.length > 0 ||
+          consultations.length > 0 ||
+          pendingConsultation) && (
           <div className="hidden w-80 flex-col border-l border-zinc-200 dark:border-zinc-800 lg:flex">
             {thinkingSteps.length > 0 && (
               <ThinkingPanel steps={thinkingSteps} isActive={isLoading} />
             )}
-            {consultations.length > 0 && (
-              <CollaborationPanel consultations={consultations} />
+            {(consultations.length > 0 || pendingConsultation) && (
+              <CollaborationPanel
+                consultations={consultations}
+                pendingConsultation={pendingConsultation}
+              />
             )}
           </div>
         )}
