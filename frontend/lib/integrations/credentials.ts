@@ -14,7 +14,7 @@ export async function getIntegrationConfig(
   try {
     const supabase = createServerSupabaseClient();
     const result = await supabase
-      .from("integration_credentials")
+      .from("integrations")
       .select("config")
       .eq("provider", provider)
       .single();

@@ -56,7 +56,7 @@ function maskConfig(config: Record<string, unknown>): Record<string, unknown> {
 export async function GET() {
   const supabase = createServerSupabaseClient();
   const result = await supabase
-    .from("integration_credentials")
+      .from("integrations")
     .select("provider, config, updated_at")
     .order("provider");
 
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabaseClient();
   const result = await supabase
-    .from("integration_credentials")
+      .from("integrations")
     .upsert(
       {
         provider: body.provider,
