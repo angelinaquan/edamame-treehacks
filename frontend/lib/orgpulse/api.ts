@@ -1,5 +1,5 @@
 /**
- * OrgPulse — Backend-agnostic data access layer.
+ * Edamame — Backend-agnostic data access layer.
  *
  * Calls real API routes (/api/orgpulse/*) for data from Supabase.
  * Falls back to mock data when the backend has no data or errors.

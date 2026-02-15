@@ -111,7 +111,7 @@ ${from.name}`,
   // Final phase
   const templates = [
     {
-      subject: "OrgPulse — Role assignments (FINAL, do not change)",
+      subject: "Edamame — Role assignments (FINAL, do not change)",
       body: `Team,
 
 Locking these in so there's zero ambiguity about who owns what:
@@ -154,7 +154,7 @@ If something breaks at 4am, check this list before waking everyone up.
 ${from.name}`,
     },
     {
-      subject: "Re: Who handles backend for OrgPulse?",
+      subject: "Re: Who handles backend for Edamame?",
       body: `${to.name},
 
 Backend responsibilities are split between three people:
@@ -172,10 +172,10 @@ In short: James = AI logic, Ella = data plumbing, Videet = ML compute, Angelina 
 ${from.name}`,
     },
     {
-      subject: "My honest thoughts on OrgPulse direction",
+      subject: "My honest thoughts on Edamame direction",
       body: `Team,
 
-Since we're locked into OrgPulse now and the demo is in a few hours, I want to share my honest assessment so we're aligned.
+Since we're locked into Edamame now and the demo is in a few hours, I want to share my honest assessment so we're aligned.
 
 What I think is working:
 ${from.opinions?.[0] || "The memory layer concept is solid and highly demoable."}
@@ -191,7 +191,7 @@ I'm committed to shipping this regardless. Let's make it great.
 ${from.name}`,
     },
     {
-      subject: `Re: Where should OrgPulse go after TreeHacks?`,
+      subject: `Re: Where should Edamame go after TreeHacks?`,
       body: `${to.name},
 
 Good question. Here's what I think:
@@ -206,7 +206,7 @@ Thoughts?
 ${from.name}`,
     },
     {
-      subject: "OrgPulse — Supabase schema finalized",
+      subject: "Edamame — Supabase schema finalized",
       body: `Team,
 
 Schema is locked. Here's what we're running with:
@@ -229,11 +229,11 @@ ${from.name}`,
 
 Updated demo script (3 minutes):
 
-0:00-0:30 — Intro: "Every org has a memory problem. OrgPulse fixes it with AI digital twins."
+0:00-0:30 — Intro: "Every org has a memory problem. Edamame fixes it with AI digital twins."
 0:30-1:15 — CEO insights: Ask "What does the team think about our launch?" Show multi-clone sentiment analysis
 1:15-2:00 — Clone chat: Chat with a clone, show RAG citations, continual learning panel
 2:00-2:30 — Live demo: Send a Slack message, show the clone learning it in real-time
-2:30-3:00 — Onboarding brief + closing: "OrgPulse turns scattered knowledge into living memory"
+2:30-3:00 — Onboarding brief + closing: "Edamame turns scattered knowledge into living memory"
 
 I think we should practice this at least twice before judging starts. Last hackathon I saw a team with an amazing project lose because their demo crashed.
 

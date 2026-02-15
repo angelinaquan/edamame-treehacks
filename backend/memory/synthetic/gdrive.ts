@@ -137,7 +137,7 @@ The fine-tuning loop was too slow and the "specialization" was hard to show in a
 | Technical Risk | High (audio) | Medium (fine-tuning) | Low (RAG + embeddings) |
 | Judge Appeal | Polarizing | Interesting | Strong (clear use case) |
 
-Decision: Going with Memory Layer / OrgPulse.
+Decision: Going with Memory Layer / Edamame.
 
 Rationale:
 - We've already burned 5+ hours on ideas 1 and 2
@@ -157,15 +157,15 @@ Votes:
     return rng.pick(templates);
   }
 
-  // Final phase -- OrgPulse / Memory Layer
+  // Final phase -- Edamame / Memory Layer
   const templates = [
     {
-      title: "OrgPulse - Demo Script (FINAL)",
-      content: `OrgPulse Demo Script - TreeHacks 2026
+      title: "Edamame - Demo Script (FINAL)",
+      content: `Edamame Demo Script - TreeHacks 2026
 Time: 3 minutes
 
 INTRO (30s):
-"Every organization has a memory problem. When someone leaves, their knowledge walks out the door. When someone joins, they spend weeks just figuring out who knows what. OrgPulse is an AI-native memory layer that captures, organizes, and serves organizational knowledge through digital twins."
+"Every organization has a memory problem. When someone leaves, their knowledge walks out the door. When someone joins, they spend weeks just figuring out who knows what. Edamame is an AI-native memory layer that captures, organizes, and serves organizational knowledge through digital twins."
 
 DEMO FLOW:
 
@@ -191,15 +191,15 @@ DEMO FLOW:
 - Show: key people, recent decisions, risks, key docs
 
 5. Close (15s)
-"OrgPulse turns your organization's scattered knowledge into a living, searchable memory. Every conversation, every doc, every decision -- captured and accessible through AI digital twins."
+"Edamame turns your organization's scattered knowledge into a living, searchable memory. Every conversation, every doc, every decision -- captured and accessible through AI digital twins."
 
 TECH STACK SLIDE:
 Next.js + Supabase + pgvector + OpenAI + Whisper`,
       mime: "application/vnd.google-apps.document",
     },
     {
-      title: "OrgPulse - Technical Architecture",
-      content: `OrgPulse - Technical Architecture
+      title: "Edamame - Technical Architecture",
+      content: `Edamame - Technical Architecture
 TreeHacks 2026
 
 Data Flow:
@@ -234,7 +234,7 @@ Built by:
       mime: "application/vnd.google-apps.document",
     },
     {
-        title: "OrgPulse — What We Learned From Pivoting Twice",
+        title: "Edamame — What We Learned From Pivoting Twice",
       content: `What We Learned From Pivoting Twice at TreeHacks
 
 Timeline:
@@ -252,14 +252,14 @@ Timeline:
 - 7:00 AM: Continual learning, onboarding, offboarding all functional.
 - 9:00 AM: Demo script rehearsed. Slides done. We're actually proud of this one.
 
-Key Takeaway: The pivots weren't wasted time. The ambient listener taught us about real-time transcription (we reused Whisper). The AI workforce taught us about multi-agent coordination (we reused clone-to-clone consultation). Both fed into OrgPulse.
+Key Takeaway: The pivots weren't wasted time. The ambient listener taught us about real-time transcription (we reused Whisper). The AI workforce taught us about multi-agent coordination (we reused clone-to-clone consultation). Both fed into Edamame.
 
 The meta-lesson: your hackathon journey IS the product sometimes. We built a memory layer because we experienced the pain of losing context during pivots -- and realized every org has the same problem, just on a larger scale.`,
       mime: "application/vnd.google-apps.document",
     },
     {
-      title: "OrgPulse - Onboarding Brief Template",
-      content: `OrgPulse Onboarding Brief - Auto-Generated
+      title: "Edamame - Onboarding Brief Template",
+      content: `Edamame Onboarding Brief - Auto-Generated
 
 Role: [New Hire Role]
 Team: [Department]

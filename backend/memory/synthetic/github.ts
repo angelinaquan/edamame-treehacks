@@ -69,7 +69,7 @@ function buildNormalCommit(
     return rng.pick(templates);
   }
 
-  // Final phase — OrgPulse
+  // Final phase — Edamame
   // Person-specific commits based on ownership areas
   const personCommits: Record<string, { message: string; files: string[] }[]> = {
     // JAMES — RAG, clone chat, insights, continual learning
@@ -193,7 +193,7 @@ function buildSpicyCommit(
       files: ["app/api/clones/[id]/chat/route.ts", "lib/memory/embed.ts", "lib/memory/search.ts"],
     },
     {
-      message: `chore: delete abandoned AI workforce code\n\nRemoving the entire multi-agent workforce framework.\nWe spent 3 hours on this and it's not demoable.\n\n${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}\n\nKeeping the agent-to-agent protocol though — reusing it for clone consultation in OrgPulse.`,
+      message: `chore: delete abandoned AI workforce code\n\nRemoving the entire multi-agent workforce framework.\nWe spent 3 hours on this and it's not demoable.\n\n${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}\n\nKeeping the agent-to-agent protocol though — reusing it for clone consultation in Edamame.`,
       files: ["lib/agents/coordinator.ts", "lib/agents/specialist.ts", "lib/agents/router.ts", "backend/modal/train_lora.py"],
     },
     {

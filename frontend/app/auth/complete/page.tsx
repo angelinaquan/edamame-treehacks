@@ -46,7 +46,7 @@ function AuthCompleteContent() {
             <Sparkles size={22} />
           </div>
           <span className="text-[24px] font-semibold tracking-tight text-white">
-            OrgPulse
+            Edamame
           </span>
         </div>
         <div className="flex items-center gap-3 text-white/60">

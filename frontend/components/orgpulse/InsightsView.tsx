@@ -36,11 +36,6 @@ import type {
 
 // ---- Constants ----
 
-const SCENARIOS = [
-  { id: null as string | null, label: "Base scenario" },
-  { id: "retraining", label: "With 12-month transition & retraining" },
-];
-
 const STANCE_COLORS: Record<Stance, string> = {
   support: "#10b981",
   neutral: "#f59e0b",
@@ -505,7 +500,6 @@ export function InsightsView({ demoTrigger }: InsightsViewProps) {
   );
   const [filters, setFilters] = useState<InsightsFilters>({
     teams: [],
-    scenario: null,
   });
   const [previousAggregation, setPreviousAggregation] =
     useState<AggregationResult | null>(null);
@@ -599,10 +593,10 @@ export function InsightsView({ demoTrigger }: InsightsViewProps) {
       setQuery(demoQuery);
       setPreviousAggregation(null);
       setPreviousThemeCounts({});
-      setFilters({ teams: [], scenario: null });
+      setFilters({ teams: [] });
       // Short delay so UI updates before streaming starts
       setTimeout(() => {
-        runQuery(demoQuery, { teams: [], scenario: null });
+        runQuery(demoQuery, { teams: [] });
       }, 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -701,33 +695,6 @@ export function InsightsView({ demoTrigger }: InsightsViewProps) {
               </div>
             </div>
 
-            {/* Scenario */}
-            <div>
-              <label className="mb-1 block text-[12px] text-[#71717a]">
-                Scenario
-              </label>
-              <div className="flex flex-col gap-1.5">
-                {SCENARIOS.map((s) => {
-                  const active = filters.scenario === s.id;
-                  return (
-                    <button
-                      key={s.id ?? "base"}
-                      onClick={() =>
-                        handleFilterChange({ ...filters, scenario: s.id })
-                      }
-                      disabled={isRunning}
-                      className={`rounded-md px-2.5 py-1.5 text-left text-[12px] font-medium transition-colors ${
-                        active
-                          ? "bg-[#c4b5a020] text-[#c4b5a0]"
-                          : "bg-[#1e1e22] text-[#71717a] hover:bg-[#222226]"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         )}
 
@@ -765,7 +732,7 @@ export function InsightsView({ demoTrigger }: InsightsViewProps) {
               Ask a management question
             </h3>
             <p className="max-w-sm text-[13px] text-[#52525b]">
-              OrgPulse will query employee digital twins, aggregate sentiment,
+              Edamame will query employee digital twins, aggregate sentiment,
               and surface key themes with evidence.
             </p>
           </div>

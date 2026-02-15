@@ -62,7 +62,7 @@ Decision: Let's prototype for 2-3 hours. If we can't get background audio workin
       content: `TreeHacks 2026 — ADR: Specialized Agent Architecture
 Date: Feb 15, 2026 ~1:00 AM
 
-Status: SUPERSEDED (pivoted to OrgPulse)
+Status: SUPERSEDED (pivoted to Edamame)
 
 Context:
 After abandoning the ambient listener, we decided to build an "AI Workforce" — a team of specialized AI agents, each fine-tuned on a domain.
@@ -82,9 +82,9 @@ What We Learned:
 - LoRA fine-tuning on Modal takes ~20 min per agent
 - Can't iterate fast enough in a 12-hour hackathon
 - System prompts + RAG can approximate "specialization" without fine-tuning
-- The agent-to-agent communication protocol was actually good — reusing in OrgPulse
+- The agent-to-agent communication protocol was actually good — reusing in Edamame
 
-Decision: Pivot to OrgPulse (AI-native memory layer) at ~3:30 AM.
+Decision: Pivot to Edamame (AI-native memory layer) at ~3:30 AM.
 Keep: agent coordination code, Whisper pipeline
 Discard: LoRA training setup, domain-specific datasets`,
     };
@@ -93,8 +93,8 @@ Discard: LoRA training setup, domain-specific datasets`,
   // Final phase
   const templates = [
     {
-      title: "OrgPulse — Team Opinions & Direction (Honest Takes)",
-      content: `Team Opinions on OrgPulse Direction
+      title: "Edamame — Team Opinions & Direction (Honest Takes)",
+      content: `Team Opinions on Edamame Direction
 TreeHacks 2026 | Collected ~5 AM
 
 Each team member's honest assessment of where we are and where we're going. Writing this down so we can reference it later and so the clones have context about our individual perspectives.
@@ -103,8 +103,8 @@ Each team member's honest assessment of where we are and where we're going. Writ
 
 JAMES LIU (ML & Backend Lead):
 
-On OrgPulse as an idea:
-${world.people.find(p => p.id === "u_james")?.opinions?.[0] || "OrgPulse is the strongest idea we've had all night."}
+On Edamame as an idea:
+${world.people.find(p => p.id === "u_james")?.opinions?.[0] || "Edamame is the strongest idea we've had all night."}
 
 On the pivots:
 ${world.people.find(p => p.id === "u_james")?.opinions?.[1] || "The ambient listener was cool but not demoable."}
@@ -122,8 +122,8 @@ ${world.people.find(p => p.id === "u_james")?.opinions?.[6] || "The pivot journe
 
 ELLA LAN (Full-Stack Engineer):
 
-On OrgPulse as an idea:
-${world.people.find(p => p.id === "u_ella")?.opinions?.[0] || "OrgPulse is a great idea but reliability matters most."}
+On Edamame as an idea:
+${world.people.find(p => p.id === "u_ella")?.opinions?.[0] || "Edamame is a great idea but reliability matters most."}
 
 On the pivots:
 ${world.people.find(p => p.id === "u_ella")?.opinions?.[1] || "The ambient listener was technically infeasible from the start."}
@@ -141,8 +141,8 @@ ${world.people.find(p => p.id === "u_ella")?.opinions?.[11] || "Our integrations
 
 ANGELINA QUAN (Product & Frontend):
 
-On OrgPulse as an idea:
-${world.people.find(p => p.id === "u_angelina")?.opinions?.[0] || "OrgPulse has the potential to be a real product."}
+On Edamame as an idea:
+${world.people.find(p => p.id === "u_angelina")?.opinions?.[0] || "Edamame has the potential to be a real product."}
 
 On the UI:
 ${world.people.find(p => p.id === "u_angelina")?.opinions?.[1] || "The dark theme was non-negotiable — it makes us look professional."}
@@ -160,7 +160,7 @@ ${world.people.find(p => p.id === "u_angelina")?.opinions?.[8] || "AI digital tw
 
 VIDEET MEHTA (ML Infrastructure):
 
-On OrgPulse vs other ideas:
+On Edamame vs other ideas:
 ${world.people.find(p => p.id === "u_videet")?.opinions?.[0] || "The ambient listener was the most novel idea."}
 
 On the AI workforce:
@@ -178,7 +178,7 @@ ${world.people.find(p => p.id === "u_videet")?.opinions?.[8] || "The hackathon f
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Where we agree:
-• OrgPulse is the right idea for THIS hackathon (demoable, novel enough, real integrations)
+• Edamame is the right idea for THIS hackathon (demoable, novel enough, real integrations)
 • The pivot journey is an asset, not a liability — show it in the demo narrative
 • Live Slack learning is the "wow moment" for judges
 • We need approach B for auth (shared OAuth)
@@ -191,7 +191,7 @@ Where we disagree:
 Decision: We'll show 5 features in order: CEO insights → clone chat → live learning → onboarding brief → agent visualization. James presents, Angelina controls the laptop.`,
     },
     {
-      title: "OrgPulse — Ideas We Killed and Why (Learning Log)",
+      title: "Edamame — Ideas We Killed and Why (Learning Log)",
       content: `Ideas We Killed and Why — TreeHacks 2026
 
 This is a record of every idea we considered, who advocated for it, and why we ultimately moved on. Writing this for posterity and so the clones have context.
@@ -212,7 +212,7 @@ Why we killed it:
 - The "always listening" UX felt creepy and would have been polarizing with judges
 - After 3 hours, best we had was a glorified voice recorder
 
-What survived: Whisper transcription pipeline (reused for OrgPulse voice mode)
+What survived: Whisper transcription pipeline (reused for Edamame voice mode)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -233,19 +233,19 @@ Why we killed it:
 - "Specialization" was hard to demonstrate visually in 3 minutes
 - Judges would ask "how is this different from different system prompts?" and we didn't have a great answer
 
-What survived: Agent-to-agent communication protocol (reused for clone consultation in OrgPulse)
+What survived: Agent-to-agent communication protocol (reused for clone consultation in Edamame)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-IDEA 3: OrgPulse — AI-Native Memory Layer (3:30 AM - present) ✅ SHIPPED
+IDEA 3: Edamame — AI-Native Memory Layer (3:30 AM - present) ✅ SHIPPED
 
 Why this won:
 - James: "${world.people.find(p => p.id === "u_james")?.opinions?.[0]?.slice(0, 200) || "The memory layer concept is technically novel but also extremely demoable."}"
-- Ella: "${world.people.find(p => p.id === "u_ella")?.opinions?.[0]?.slice(0, 200) || "OrgPulse is a great idea but we need to focus on reliability."}"
-- Angelina: "${world.people.find(p => p.id === "u_angelina")?.opinions?.[0]?.slice(0, 200) || "OrgPulse has the potential to be a real product."}"
+- Ella: "${world.people.find(p => p.id === "u_ella")?.opinions?.[0]?.slice(0, 200) || "Edamame is a great idea but we need to focus on reliability."}"
+- Angelina: "${world.people.find(p => p.id === "u_angelina")?.opinions?.[0]?.slice(0, 200) || "Edamame has the potential to be a real product."}"
 - Videet: "${world.people.find(p => p.id === "u_videet")?.opinions?.[2]?.slice(0, 200) || "The memory layer concept is sound."}"
 
-Key decisions made for OrgPulse:
+Key decisions made for Edamame:
 1. Supabase + pgvector over a separate vector DB (Ella's call — simpler, cheaper, good enough)
 2. text-embedding-3-small over large (Videet's call — faster, 1536-d is sufficient)
 3. Cursor-inspired dark theme (Angelina's call — she works there, knows the aesthetic)
@@ -259,8 +259,8 @@ Meta-reflection:
 The fact that we killed two ideas and still shipped a strong product in 6 hours says something about the team. Two IOAI gold medalists (Angelina + Videet), a SAIL researcher and TreeHacks organizer (James), and a full-stack engineer who made all the integrations actually work (Ella). Different perspectives, healthy disagreements, but ultimately converged on something we're all proud of.`,
     },
     {
-      title: "OrgPulse — Team Roles & Ownership (LOCKED)",
-      content: `Team Roles & Component Ownership — OrgPulse
+      title: "Edamame — Team Roles & Ownership (LOCKED)",
+      content: `Team Roles & Component Ownership — Edamame
 TreeHacks 2026 | Locked at 3:45 AM
 
 We are NOT changing these. If something is broken, find the owner and talk to them directly.
@@ -330,8 +330,8 @@ Cross-cutting rules:
 • No new features after 6 AM. Only bug fixes.`,
     },
     {
-      title: "OrgPulse — 5 AM Standup Notes",
-      content: `5 AM Standup — OrgPulse Build Sprint
+      title: "Edamame — 5 AM Standup Notes",
+      content: `5 AM Standup — Edamame Build Sprint
 Attendees: James, Ella, Angelina, Videet
 
 JAMES (ML & Backend):
@@ -379,8 +379,8 @@ DECISIONS MADE:
 5. Everyone takes a 30-min nap at 7 AM. Alarms set. DO NOT OVERSLEEP.`,
     },
     {
-      title: "OrgPulse — Product Spec (FINAL)",
-      content: `OrgPulse — AI-Native Organizational Memory Layer
+      title: "Edamame — Product Spec (FINAL)",
+      content: `Edamame — AI-Native Organizational Memory Layer
 TreeHacks 2026
 
 Team:
@@ -393,7 +393,7 @@ Problem:
 Organizations lose critical knowledge constantly. When employees leave, their expertise walks out the door. When new people join, they spend weeks just figuring out who knows what. Information is scattered across Slack, Drive, email, GitHub — no single system connects it all.
 
 Solution:
-OrgPulse is an AI-native memory layer that ingests knowledge from all organizational tools, creates embeddings for semantic search, and serves it through digital twin clones. Every employee gets a clone that can answer questions based on their real communications and documents.
+Edamame is an AI-native memory layer that ingests knowledge from all organizational tools, creates embeddings for semantic search, and serves it through digital twin clones. Every employee gets a clone that can answer questions based on their real communications and documents.
 
 Core Features:
 1. Digital Twin Chat — Talk to any employee's AI clone
@@ -417,7 +417,7 @@ Tech Stack:
 - Infra: Modal (ML compute) + Vercel (hosting)`,
     },
     {
-      title: "OrgPulse — Pivot Journey & Lessons",
+      title: "Edamame — Pivot Journey & Lessons",
       content: `What We Learned From Pivoting Twice at TreeHacks 2026
 
 Timeline:
@@ -429,7 +429,7 @@ Timeline:
 1:30 AM — Start multi-agent framework. ${world.people[3]?.name} sets up LoRA training on Modal.
 3:00 AM — Fine-tuning too slow. Each agent takes 20 min. Can't iterate.
 3:15 AM — Another tense discussion. We've now burned 5.5 hours on two ideas.
-3:30 AM — Pivot #2: OrgPulse — AI-native memory layer. Everyone agrees (finally).
+3:30 AM — Pivot #2: Edamame — AI-native memory layer. Everyone agrees (finally).
 4:00 AM — Supabase schema done, RAG pipeline running, ${world.people[2]?.name} starts frontend.
 5:00 AM — Clone chat working. First "wow" when James's clone answers from Slack data.
 6:00 AM — ${world.people[1]?.name} finishes Slack + Drive integrations.
@@ -438,12 +438,12 @@ Timeline:
 9:00 AM — Demo rehearsed. We're actually proud of this.
 
 Key Insight:
-The pivots weren't wasted time. Ambient listener → we reused Whisper for voice mode. AI workforce → we reused agent-to-agent communication for clone consultation. Both fed into OrgPulse.
+The pivots weren't wasted time. Ambient listener → we reused Whisper for voice mode. AI workforce → we reused agent-to-agent communication for clone consultation. Both fed into Edamame.
 
 Meta-lesson: We built a memory layer because we experienced the pain of losing context during pivots — and realized every org has the same problem at scale.`,
     },
     {
-      title: "OrgPulse — Demo Runbook",
+      title: "Edamame — Demo Runbook",
       content: `Demo Runbook — TreeHacks 2026 Judging
 Time: 3 minutes STRICT
 
@@ -457,7 +457,7 @@ Pre-Demo Checklist:
 Demo Flow:
 
 0:00-0:30 INTRO (${world.people[0]?.name} presents)
-"Every organization has a memory problem. Knowledge is scattered across Slack, Drive, email. When someone leaves, their expertise disappears. OrgPulse fixes this with AI digital twins."
+"Every organization has a memory problem. Knowledge is scattered across Slack, Drive, email. When someone leaves, their expertise disappears. Edamame fixes this with AI digital twins."
 
 0:30-1:15 CEO INSIGHTS (live demo)
 - Type: "What does the team think about our approach to the SELFIMP deadline?"
@@ -476,7 +476,7 @@ Demo Flow:
 
 2:30-3:00 CLOSE
 - Quick flash of onboarding brief
-- "OrgPulse turns scattered knowledge into living, searchable organizational memory."
+- "Edamame turns scattered knowledge into living, searchable organizational memory."
 - Show tech stack slide
 
 BACKUP PLAN:

@@ -3,7 +3,7 @@
     "id": "msg-050",
     "channel": "general",
     "author": "ella",
-    "text": "onboarding brief feature is live. here's what it generates:\n\ngiven a role + team, it queries the memory layer and produces:\n- Key People: who to meet, their role, a tip for connecting\n- Recent Decisions: last 30 days of decisions from the memory layer\n- Active Risks: flagged issues with severity ratings\n- Key Documents: most-referenced docs from the team's memories\n\nit's pulling from REAL data in the memory layer, not mocked. took 4 hours to build but it shows judges that OrgPulse has practical enterprise value beyond \"cool chatbot.\"\n\nref: dec-015",
+    "text": "onboarding brief feature is live. here's what it generates:\n\ngiven a role + team, it queries the memory layer and produces:\n- Key People: who to meet, their role, a tip for connecting\n- Recent Decisions: last 30 days of decisions from the memory layer\n- Active Risks: flagged issues with severity ratings\n- Key Documents: most-referenced docs from the team's memories\n\nit's pulling from REAL data in the memory layer, not mocked. took 4 hours to build but it shows judges that Edamame has practical enterprise value beyond \"cool chatbot.\"\n\nref: dec-015",
     "references": {
       "decisions": [
         "dec-015"

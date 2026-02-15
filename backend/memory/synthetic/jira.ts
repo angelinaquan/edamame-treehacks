@@ -222,18 +222,18 @@ Decision needed by: NOW`,
 
     `[${issueKey}] SPIKE: Should we revert to AI Workforce idea?
 
-Priority: Medium → now Low (we decided to stay with OrgPulse)
+Priority: Medium → now Low (we decided to stay with Edamame)
 Reporter: ${reporterName}
 Assignee: ${assigneeName}
 
-At ${rng.pick(["3am", "4am"])}, ${reporterName} suggested reverting to the AI Workforce idea because OrgPulse wasn't coming together fast enough.
+At ${rng.pick(["3am", "4am"])}, ${reporterName} suggested reverting to the AI Workforce idea because Edamame wasn't coming together fast enough.
 
 Discussion:
 ${reporterName}: "${conflict.side_a.position}"
 ${assigneeName}: "${conflict.side_b.position}"
 ${other.name}: "${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}"
 
-Resolution: We're staying with OrgPulse. This ticket is WONTFIX.
+Resolution: We're staying with Edamame. This ticket is WONTFIX.
 ${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}
 
 Lesson: No more pivots. We ship what we have.`,

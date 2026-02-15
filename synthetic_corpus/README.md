@@ -1,4 +1,4 @@
-# OrgPulse Synthetic Corpus
+# Edamame Synthetic Corpus
 
 Deterministic synthetic dataset for training and evaluating 4 AI digital twin clones. Simulates 12 days of a TreeHacks hackathon team building an AI-native memory layer.
 

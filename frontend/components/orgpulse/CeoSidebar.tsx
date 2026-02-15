@@ -45,7 +45,7 @@ export function CeoSidebar({ activeView, onViewChange, onDemoMode }: CeoSidebarP
           <Sparkles size={15} />
         </div>
         <span className="text-[15px] font-semibold tracking-tight text-[#ededed]">
-          OrgPulse
+          Edamame
         </span>
       </div>
 

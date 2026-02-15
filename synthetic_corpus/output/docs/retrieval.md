@@ -1,6 +1,6 @@
 ---
 id: doc-retrieval
-title: "OrgPulse — Retrieval Pipeline Design"
+title: "Edamame — Retrieval Pipeline Design"
 author: videet
 created: 2026-02-05
 updated: 2026-02-12
@@ -8,7 +8,7 @@ status: final
 references: {"decisions": ["dec-004", "dec-005", "dec-010", "dec-013", "dec-016"]}
 ---
 
-# OrgPulse — Retrieval Pipeline Design
+# Edamame — Retrieval Pipeline Design
 
 **Status:** Final | **Owner:** Videet Mehta | **Last updated:** Day 10
 

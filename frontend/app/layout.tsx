@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OrgPulse — Organizational Intelligence",
+  title: "Edamame — Organizational Intelligence",
   description:
     "Multi-agent population queries and institutional memory for modern organizations.",
 };

@@ -1,6 +1,6 @@
 ---
 id: doc-schema
-title: "OrgPulse — Database Schema"
+title: "Edamame — Database Schema"
 author: angelina
 created: 2026-02-04
 updated: 2026-02-11
@@ -8,7 +8,7 @@ status: final
 references: {"decisions": ["dec-002", "dec-003", "dec-004", "dec-012", "dec-013"]}
 ---
 
-# OrgPulse — Database Schema
+# Edamame — Database Schema
 
 **Status:** Final | **Owner:** Angelina Quan + Ella Lan | **Last updated:** Day 9
 

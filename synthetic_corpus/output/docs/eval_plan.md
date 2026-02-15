@@ -1,6 +1,6 @@
 ---
 id: doc-eval
-title: "OrgPulse — Evaluation Plan"
+title: "Edamame — Evaluation Plan"
 author: angelina
 created: 2026-02-07
 updated: 2026-02-12
@@ -8,7 +8,7 @@ status: final
 references: {"decisions": ["dec-004", "dec-010", "dec-012", "dec-013"]}
 ---
 
-# OrgPulse — Evaluation Plan
+# Edamame — Evaluation Plan
 
 **Status:** Final | **Owner:** Angelina Quan | **Last updated:** Day 10
 

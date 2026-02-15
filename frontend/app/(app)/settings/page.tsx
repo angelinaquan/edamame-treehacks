@@ -276,7 +276,7 @@ function SettingsContent() {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#c4b5a0] text-[#0a0a0c]">
             <Sparkles size={15} />
           </div>
-          <span className="text-[15px] font-semibold tracking-tight text-[#ededed]">OrgPulse</span>
+          <span className="text-[15px] font-semibold tracking-tight text-[#ededed]">Edamame</span>
         </div>
         <nav className="flex-1 px-3">
           <a
@@ -284,7 +284,7 @@ function SettingsContent() {
             className="mb-1 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] text-[#a1a1aa] transition-colors hover:bg-[#19191d] hover:text-[#d4d4d8]"
           >
             <ArrowLeft size={16} className="text-[#52525b]" />
-            Back to OrgPulse
+            Back to Edamame
           </a>
         </nav>
       </aside>

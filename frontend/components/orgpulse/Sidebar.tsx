@@ -44,7 +44,7 @@ export function Sidebar({ activeView, onViewChange, onDemoMode }: SidebarProps) 
           <Sparkles size={15} />
         </div>
         <span className="text-[15px] font-semibold tracking-tight text-[#ededed]">
-          OrgPulse
+          Edamame
         </span>
       </div>
 

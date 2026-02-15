@@ -1,6 +1,6 @@
 ---
 id: doc-arch
-title: "OrgPulse — System Architecture"
+title: "Edamame — System Architecture"
 author: angelina
 created: 2026-02-04
 updated: 2026-02-12
@@ -8,13 +8,13 @@ status: final
 references: {"decisions": ["dec-002", "dec-003", "dec-005", "dec-008", "dec-009", "dec-010", "dec-012", "dec-013"]}
 ---
 
-# OrgPulse — System Architecture
+# Edamame — System Architecture
 
 **Status:** Final | **Owner:** Angelina Quan | **Last updated:** Day 10
 
 ## Overview
 
-OrgPulse is an AI-native memory layer that ingests organizational knowledge from multiple sources, creates semantic embeddings, and serves it through digital twin clones.
+Edamame is an AI-native memory layer that ingests organizational knowledge from multiple sources, creates semantic embeddings, and serves it through digital twin clones.
 
 ## Data Flow
 

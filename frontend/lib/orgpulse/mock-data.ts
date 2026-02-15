@@ -180,19 +180,6 @@ const baseResponses: Omit<EmployeeResponse, "employee">[] = [
 ];
 
 // ============================================
-// SCENARIO VARIANTS (stance shifts)
-// ============================================
-
-const retrainingStanceOverrides: Record<string, Stance> = {
-  e2: "support",   // Priya: neutral → support (retraining addresses concerns)
-  e4: "neutral",   // Rachel: oppose → neutral (12-month timeline helps)
-  e5: "neutral",   // James: oppose → neutral (aligns with his suggestion)
-  e7: "neutral",   // Sofia: oppose → neutral (migration support helps)
-  e8: "support",   // Tom: neutral → support (dedicated migration team)
-  e12: "support",  // Lisa: neutral → support (great messaging angle)
-};
-
-// ============================================
 // THEMES
 // ============================================
 
@@ -266,28 +253,11 @@ export function getResponsesForQuery(
 
   return filtered.map((emp, idx) => {
     const base = baseResponses[idx];
-    let stance = base.stance;
-    let summary = base.summary;
-
-    if (filters.scenario === "retraining") {
-      const override = retrainingStanceOverrides[emp.id];
-      if (override) {
-        stance = override;
-        if (override !== base.stance) {
-          const shift =
-            override === "support"
-              ? "With the retraining program, now leans supportive."
-              : "With the transition plan, moved to a more neutral position.";
-          summary = `${shift} ${base.summary.split(". ").slice(1).join(". ")}`;
-        }
-      }
-    }
-
     return {
       employee: emp,
-      stance,
+      stance: base.stance,
       confidence: base.confidence,
-      summary,
+      summary: base.summary,
       reasoning: base.reasoning,
       citations: base.citations,
     };
@@ -306,7 +276,6 @@ export function computeAggregation(
     responses.reduce((sum, r) => sum + r.confidence, 0) / total;
   const themes = buildThemes(responses);
 
-  const scenario = filters.scenario === "retraining" ? " with the proposed retraining program" : "";
   const topStance = support >= oppose ? "supportive" : "opposed";
 
   return {
@@ -318,7 +287,7 @@ export function computeAggregation(
     overallConfidence: Math.round(avgConfidence * 100) / 100,
     themes,
     totalResponses: total,
-    summary: `Across ${total} employees${scenario}, the organization is predominantly ${topStance} (${Math.round(
+    summary: `Across ${total} employees, the organization is predominantly ${topStance} (${Math.round(
       (support / total) * 100
     )}% support, ${Math.round((oppose / total) * 100)}% oppose). ${themes[0]?.label || "Mixed sentiment"} emerged as the dominant theme.`,
   };

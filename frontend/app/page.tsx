@@ -61,7 +61,7 @@ export default function LandingPage() {
 
           {/* Title */}
           <h1 className="mb-1.5 text-center text-[20px] font-semibold text-white">
-            Sign in to OrgPulse
+            Sign in to Edamame
           </h1>
           <p className="mb-7 text-center text-[14px] text-[#888]">
             Enter your email to continue.

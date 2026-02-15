@@ -1,6 +1,6 @@
 ---
 id: doc-demo
-title: "OrgPulse — Demo Script (FINAL)"
+title: "Edamame — Demo Script (FINAL)"
 author: ella
 created: 2026-02-13
 updated: 2026-02-14
@@ -8,7 +8,7 @@ status: final
 references: {"decisions": ["dec-006", "dec-014", "dec-015", "dec-016"]}
 ---
 
-# OrgPulse — Demo Script
+# Edamame — Demo Script
 
 **Status:** Final | **Owner:** Ella Lan | **Last updated:** Day 12
 **Presenter:** James Liu | **Laptop operator:** Angelina Quan
@@ -18,7 +18,7 @@ references: {"decisions": ["dec-006", "dec-014", "dec-015", "dec-016"]}
 ### 0:00–0:20 — HOOK (James speaks)
 "Sarah quit last week. Everything she knew about the payments system
 is gone. Her replacement spends three weeks just figuring out who to
-ask about what. OrgPulse fixes this — it's an AI memory layer that
+ask about what. Edamame fixes this — it's an AI memory layer that
 captures organizational knowledge and serves it through digital twin clones."
 
 ### 0:20–1:00 — ACT 1: CEO INSIGHTS (40 sec)
@@ -37,7 +37,7 @@ captures organizational knowledge and serves it through digital twin clones."
 
 ### 1:40–2:10 — ACT 3: LIVE LEARNING (30 sec)
 - Angelina opens Slack, types: "We decided to go with approach B for the auth system"
-- Switches back to OrgPulse — Learning panel: "Extracting..." → "Stored"
+- Switches back to Edamame — Learning panel: "Extracting..." → "Stored"
 - Types: "What did we decide about auth?" → clone answers with the new fact
 - James: "The clone learned that 4 seconds ago. It gets smarter with every conversation."
 
@@ -45,10 +45,10 @@ captures organizational knowledge and serves it through digital twin clones."
 - Angelina clicks Knowledge Base → Onboarding
 - Selects role + team → clicks Generate
 - Brief appears: key people, recent decisions, risks, key docs
-- James: "When someone joins, OrgPulse auto-generates their first-week briefing."
+- James: "When someone joins, Edamame auto-generates their first-week briefing."
 
 ### 2:40–3:00 — CLOSE
-- James: "OrgPulse turns scattered knowledge into living organizational memory.
+- James: "Edamame turns scattered knowledge into living organizational memory.
   Built with Next.js, Supabase, pgvector, and OpenAI."
 - Tech stack slide appears
 - "Questions?"

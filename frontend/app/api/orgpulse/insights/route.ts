@@ -5,7 +5,7 @@ import OpenAI from "openai";
 
 /**
  * POST /api/orgpulse/insights
- * Body: { question: string, filters: { teams: string[], scenario: string | null } }
+ * Body: { question: string, filters: { teams: string[] } }
  *
  * Queries all clones from Supabase, retrieves relevant memories for each,
  * uses OpenAI to generate a stance per clone, then aggregates into themes.
@@ -163,13 +163,8 @@ async function generateCloneStance(
   personality: Record<string, unknown> | null,
   expertise: string[],
   context: string,
-  question: string,
-  scenario: string | null
+  question: string
 ): Promise<StanceResult> {
-  const scenarioNote = scenario === "retraining"
-    ? "\n\nIMPORTANT SCENARIO MODIFIER: The company is also proposing a 12-month transition period with retraining programs for affected employees. Factor this into your assessment — it may shift your stance compared to the base scenario."
-    : "";
-
   const prompt = `You are simulating the perspective of ${cloneName}, who works as ${role} in the ${department} department.
 Their expertise includes: ${expertise.join(", ") || "general organizational knowledge"}.
 Personality/tone: ${(personality?.tone as string) || "professional"}.
@@ -177,7 +172,6 @@ Bio: ${(personality?.bio as string) || `Team member at the organization`}.
 
 Here is relevant context from their knowledge base (emails, docs, Slack, meetings):
 ${context}
-${scenarioNote}
 
 Based on this person's role, expertise, knowledge, and perspective, evaluate the following management question:
 "${question}"
@@ -302,7 +296,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { question, filters } = body as {
       question: string;
-      filters: { teams: string[]; scenario: string | null };
+      filters: { teams: string[] };
     };
 
     if (!question) {
@@ -451,8 +445,7 @@ export async function POST(request: NextRequest) {
                   clone.personality,
                   expertise,
                   context,
-                  question,
-                  filters?.scenario ?? null
+                  question
                 );
 
                 return {
@@ -509,10 +502,6 @@ export async function POST(request: NextRequest) {
 
           const topStance =
             supportCount >= opposeCount ? "supportive" : "opposed";
-          const scenarioLabel =
-            filters?.scenario === "retraining"
-              ? " with the proposed retraining program"
-              : "";
 
           // Add counts to themes
           const themesWithCounts = themes.map((t) => ({
@@ -532,7 +521,7 @@ export async function POST(request: NextRequest) {
               themes: themesWithCounts,
               totalResponses: total,
               availableTeams,
-              summary: `Across ${total} employees${scenarioLabel}, the organization is predominantly ${topStance} (${
+              summary: `Across ${total} employees, the organization is predominantly ${topStance} (${
                 total > 0 ? Math.round((supportCount / total) * 100) : 0
               }% support, ${
                 total > 0 ? Math.round((opposeCount / total) * 100) : 0

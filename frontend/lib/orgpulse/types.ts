@@ -1,5 +1,5 @@
 // ============================================
-// OrgPulse — Type Definitions
+// Edamame — Type Definitions
 // ============================================
 
 export interface Employee {
@@ -73,7 +73,6 @@ export type InsightEvent =
 
 export interface InsightsFilters {
   teams: string[];
-  scenario: string | null;
 }
 
 export interface DeltaResult {
