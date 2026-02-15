@@ -37,32 +37,17 @@ interface MemoryEntry {
   status: "extracting" | "stored";
 }
 
-// Simple fact extraction from a user message
-function extractFactFromMessage(content: string, cloneName: string): string | null {
-  const lower = content.toLowerCase();
-  // Skip very short messages or greetings
-  if (content.length < 20) return null;
-  if (lower.match(/^(hi|hello|hey|thanks|ok|yes|no|sure)\b/)) return null;
-
-  // Extract opinion/preference/fact patterns
-  if (lower.includes("think") || lower.includes("opinion") || lower.includes("feel")) {
-    return `${cloneName} expressed a viewpoint: "${content.slice(0, 120)}${content.length > 120 ? "…" : ""}"`;
-  }
-  if (lower.includes("working on") || lower.includes("project") || lower.includes("building")) {
-    return `${cloneName} mentioned current work: "${content.slice(0, 120)}${content.length > 120 ? "…" : ""}"`;
-  }
-  if (lower.includes("concern") || lower.includes("worry") || lower.includes("risk") || lower.includes("problem")) {
-    return `${cloneName} flagged a concern: "${content.slice(0, 120)}${content.length > 120 ? "…" : ""}"`;
-  }
-  if (lower.includes("decision") || lower.includes("decided") || lower.includes("plan")) {
-    return `${cloneName} shared a decision/plan: "${content.slice(0, 120)}${content.length > 120 ? "…" : ""}"`;
-  }
-  // Generic extraction for longer messages
-  if (content.length > 40) {
-    return `New context from ${cloneName}: "${content.slice(0, 100)}${content.length > 100 ? "…" : ""}"`;
-  }
-  return null;
-}
+const SOURCE_LABELS: Record<string, string> = {
+  conversation: "Conversation",
+  slack: "Slack",
+  github: "GitHub",
+  gdrive: "Google Drive",
+  email: "Gmail",
+  notion: "Notion",
+  jira: "Jira",
+  voice: "Voice",
+  manual: "Manual",
+};
 
 // ---- Memory Panel sub-component ----
 
@@ -136,7 +121,7 @@ function MemoryPanel({
                     >
                       {entry.status === "extracting"
                         ? "Extracting…"
-                        : "Stored in mem0"}
+                        : "Stored"}
                     </span>
                     <span className="ml-auto text-[9px] text-neutral-400">
                       {new Date(entry.timestamp).toLocaleTimeString([], {
@@ -149,7 +134,7 @@ function MemoryPanel({
                     {entry.fact}
                   </p>
                   <p className="mt-1 text-[10px] text-neutral-400">
-                    Source: {entry.source}
+                    Source: {SOURCE_LABELS[entry.source] || entry.source}
                   </p>
                 </div>
               ))}
@@ -278,6 +263,83 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, streamingContent]);
 
+  // Poll for real memory entries from the backend (all sources: chat, Slack, etc.)
+  const lastPollRef = useRef<string>(new Date().toISOString());
+  const knownIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    // Initial load: fetch recent entries
+    fetch("/api/memory/recent?limit=20")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.entries && data.entries.length > 0) {
+          const initial: MemoryEntry[] = data.entries.map(
+            (e: { id: string; fact: string; source: string; timestamp: string }) => {
+              knownIdsRef.current.add(e.id);
+              return {
+                id: e.id,
+                fact: e.fact,
+                source: e.source,
+                timestamp: e.timestamp,
+                status: "stored" as const,
+              };
+            }
+          );
+          setMemoryEntries((prev) => {
+            // Merge: keep any "extracting" placeholders, add real entries
+            const extracting = prev.filter((e) => e.status === "extracting");
+            return [...extracting, ...initial];
+          });
+        }
+      })
+      .catch(() => {});
+
+    // Poll every 4 seconds for new entries
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/memory/recent?limit=10&since=${encodeURIComponent(lastPollRef.current)}`
+        );
+        const data = await res.json();
+        if (data.entries && data.entries.length > 0) {
+          const newEntries: MemoryEntry[] = [];
+          for (const e of data.entries as Array<{
+            id: string;
+            fact: string;
+            source: string;
+            timestamp: string;
+          }>) {
+            if (!knownIdsRef.current.has(e.id)) {
+              knownIdsRef.current.add(e.id);
+              newEntries.push({
+                id: e.id,
+                fact: e.fact,
+                source: e.source,
+                timestamp: e.timestamp,
+                status: "stored",
+              });
+            }
+          }
+          if (newEntries.length > 0) {
+            setMemoryEntries((prev) => {
+              // Remove "extracting" placeholders when real entries arrive
+              const withoutExtracting = prev.filter(
+                (e) => e.status !== "extracting"
+              );
+              return [...newEntries, ...withoutExtracting];
+            });
+          }
+          // Update the poll cursor to the newest entry's timestamp
+          lastPollRef.current = data.entries[0].timestamp;
+        }
+      } catch {
+        // polling error — skip
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const sendMessage = useCallback(
     async (question: string) => {
       if (!profile || !question.trim() || isStreaming) return;
@@ -299,6 +361,21 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
       setStreamingContent("");
       setStreamingCitations([]);
 
+      // Show a temporary "extracting" indicator while the backend learns
+      const extractingId = `extracting_${Date.now()}`;
+      if (question.length >= 20) {
+        setMemoryEntries((prev) => [
+          {
+            id: extractingId,
+            fact: `Learning from: "${question.slice(0, 100)}${question.length > 100 ? "…" : ""}"`,
+            source: "conversation",
+            timestamp: new Date().toISOString(),
+            status: "extracting",
+          },
+          ...prev,
+        ]);
+      }
+
       try {
         let accumulated = "";
         let cites: Citation[] = [];
@@ -316,6 +393,12 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
           } else if (event.type === "citations") {
             cites = event.citations;
             setStreamingCitations(cites);
+          } else if (event.type === "learning") {
+            // Backend confirmed learning — remove the extracting placeholder
+            // The real entries will appear via polling
+            setMemoryEntries((prev) =>
+              prev.filter((e) => e.id !== extractingId)
+            );
           }
         }
 
@@ -327,34 +410,11 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
           citations: cites.length > 0 ? cites : undefined,
         };
         setMessages((prev) => [...prev, assistantMsg]);
-
-        // --- Extract memory from the user's message ---
-        const userName = profile?.employee.name?.replace(" [Twin Clone]", "") || "User";
-        const userFact = extractFactFromMessage(question, userName);
-        if (userFact) {
-          const entryId = `mem_${Date.now()}`;
-          // Show "extracting" state
-          setMemoryEntries((prev) => [
-            {
-              id: entryId,
-              fact: userFact,
-              source: "Conversation",
-              timestamp: new Date().toISOString(),
-              status: "extracting",
-            },
-            ...prev,
-          ]);
-          // Transition to "stored" after a short delay
-          setTimeout(() => {
-            setMemoryEntries((prev) =>
-              prev.map((e) =>
-                e.id === entryId ? { ...e, status: "stored" } : e
-              )
-            );
-          }, 1500);
-        }
       } catch {
-        // aborted
+        // aborted — clean up extracting placeholder
+        setMemoryEntries((prev) =>
+          prev.filter((e) => e.id !== extractingId)
+        );
       }
 
       setIsStreaming(false);

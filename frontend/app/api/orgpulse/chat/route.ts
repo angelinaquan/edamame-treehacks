@@ -38,11 +38,12 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServerSupabaseClient();
 
-    // Continual learning: extract facts from user question (fire-and-forget)
+    // Continual learning: run concurrently with the rest of the request
     const convId = `orgpulse_conv_${Date.now()}`;
-    learnFromConversation(cloneId, question, convId).catch((err) =>
-      console.error("[orgpulse-chat] Background learning failed:", err)
-    );
+    const learningPromise = learnFromConversation(cloneId, question, convId).catch((err) => {
+      console.error("[orgpulse-chat] Background learning failed:", err);
+      return null;
+    });
 
     // Fetch clone info
     const { data: clone } = await supabase
@@ -214,6 +215,24 @@ ${factsStr ? `\n### Key Facts\n${factsStr}\n` : ""}
               encoder.encode(`data: ${JSON.stringify({ type: "citations", citations })}\n\n`)
             );
           }
+
+          // Send learning results (awaited from concurrent promise)
+          const learningResult = await learningPromise;
+          if (learningResult && (learningResult.factsSaved > 0 || learningResult.factsReinforced > 0)) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  type: "learning",
+                  learning: {
+                    factsExtracted: learningResult.factsExtracted,
+                    factsSaved: learningResult.factsSaved,
+                    factsReinforced: learningResult.factsReinforced,
+                  },
+                })}\n\n`
+              )
+            );
+          }
+
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
           controller.close();
         } catch (err) {

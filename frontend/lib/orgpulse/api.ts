@@ -318,6 +318,7 @@ export async function* streamCloneChat(
 ): AsyncGenerator<
   | { type: "chunk"; text: string }
   | { type: "citations"; citations: Citation[] }
+  | { type: "learning"; learning: { factsExtracted: number; factsSaved: number; factsReinforced: number } }
   | { type: "done" }
 > {
   // Try real API first
@@ -350,6 +351,8 @@ export async function* streamCloneChat(
               yield { type: "chunk", text: event.text };
             } else if (event.type === "citations") {
               yield { type: "citations", citations: event.citations };
+            } else if (event.type === "learning") {
+              yield { type: "learning", learning: event.learning };
             } else if (event.type === "done") {
               yield { type: "done" };
               return;
