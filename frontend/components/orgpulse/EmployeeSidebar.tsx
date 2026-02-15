@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   BookOpen,
   Sparkles,
@@ -41,8 +42,13 @@ export function EmployeeSidebar({
   onViewChange,
   onDemoMode,
 }: EmployeeSidebarProps) {
-  const email = typeof window !== "undefined" ? sessionStorage.getItem("orgpulse_email") || "" : "";
-  const cloneName = typeof window !== "undefined" ? sessionStorage.getItem("orgpulse_clone_name") || "" : "";
+  const [email, setEmail] = useState("");
+  const [cloneName, setCloneName] = useState("");
+
+  useEffect(() => {
+    setEmail(sessionStorage.getItem("orgpulse_email") || "");
+    setCloneName(sessionStorage.getItem("orgpulse_clone_name") || "");
+  }, []);
 
   return (
     <aside className="flex h-full w-[240px] flex-col border-r border-neutral-200 bg-neutral-50/70">

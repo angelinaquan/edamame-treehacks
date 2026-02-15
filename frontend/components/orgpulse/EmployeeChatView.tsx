@@ -102,6 +102,8 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
   const [mode, setMode] = useState<"text" | "voice">("text");
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -133,6 +135,26 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
       }
       setLoading(false);
     });
+  }, []);
+
+  // Enumerate audio input devices
+  useEffect(() => {
+    async function loadDevices() {
+      try {
+        const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        tempStream.getTracks().forEach((t) => t.stop());
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const inputs = devices.filter((d) => d.kind === "audioinput");
+        setAudioDevices(inputs);
+        if (inputs.length > 0 && !selectedDeviceId) {
+          setSelectedDeviceId(inputs[0].deviceId);
+        }
+      } catch {
+        // permission denied — will surface when they try to record
+      }
+    }
+    loadDevices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -210,8 +232,19 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
   // ---- Voice recording ----
   const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {}),
+        },
+      });
+
+      const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"]
+        .find((t) => MediaRecorder.isTypeSupported(t)) || "audio/webm";
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -221,21 +254,23 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const blobType = chunksRef.current[0]?.type || mimeType;
+        const audioBlob = new Blob(chunksRef.current, { type: blobType });
         setIsRecording(false);
         setIsTranscribing(true);
 
         try {
+          const ext = blobType.includes("ogg") ? "ogg" : blobType.includes("mp4") ? "m4a" : "webm";
           const formData = new FormData();
-          formData.append("file", audioBlob, "recording.webm");
+          formData.append("audio", audioBlob, `recording.${ext}`);
           const res = await fetch("/api/voice/transcribe", {
             method: "POST",
             body: formData,
           });
           if (res.ok) {
             const data = await res.json();
-            if (data.text) {
-              sendMessage(data.text);
+            if (data.text?.trim()) {
+              sendMessage(data.text.trim());
             }
           }
         } catch {
@@ -244,12 +279,12 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
         setIsTranscribing(false);
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(1000);
       setIsRecording(true);
     } catch {
       // mic access denied
     }
-  }, [sendMessage]);
+  }, [sendMessage, selectedDeviceId]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -440,6 +475,21 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
         ) : (
           /* Voice mode */
           <div className="flex flex-col items-center gap-3 py-4">
+            {/* Microphone selector */}
+            {audioDevices.length > 0 && (
+              <select
+                value={selectedDeviceId}
+                onChange={(e) => setSelectedDeviceId(e.target.value)}
+                disabled={isRecording || isTranscribing}
+                className="mb-1 w-64 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[12px] text-neutral-600 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              >
+                {audioDevices.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label || `Mic ${d.deviceId.slice(0, 8)}…`}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isStreaming || isTranscribing}
