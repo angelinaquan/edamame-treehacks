@@ -4,6 +4,9 @@ const SOURCE_REQUIRED_METADATA: Record<string, string[]> = {
   slack: ["channel_id", "sender_id"],
   notion: ["page_id", "workspace_id", "last_edited_by", "path"],
   github: ["repo", "commit_sha", "author", "files_changed"],
+  jira: ["board_id", "issue_key", "assignee", "reporter"],
+  gdrive: ["file_id", "mime_type", "folder_id", "owner"],
+  email: ["message_id", "thread_id", "from", "to"],
 };
 
 export interface SyntheticValidationResult {

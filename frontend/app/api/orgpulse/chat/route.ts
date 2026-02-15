@@ -59,8 +59,9 @@ export async function POST(request: NextRequest) {
     if (searchTerms.length > 0) {
       const orFilter = searchTerms.map((t) => `content.ilike.%${t}%`).join(",");
       const { data: chunkData } = await supabase
-        .from("chunks")
+        .from("memories")
         .select("content, metadata")
+        .eq("type", "chunk")
         .or(orFilter)
         .limit(10);
       chunks = (chunkData ?? []) as typeof chunks;
@@ -69,8 +70,9 @@ export async function POST(request: NextRequest) {
     // If no keyword matches, get most recent chunks
     if (chunks.length === 0) {
       const { data: recentChunks } = await supabase
-        .from("chunks")
+        .from("memories")
         .select("content, metadata")
+        .eq("type", "chunk")
         .order("created_at", { ascending: false })
         .limit(8);
       chunks = (recentChunks ?? []) as typeof chunks;

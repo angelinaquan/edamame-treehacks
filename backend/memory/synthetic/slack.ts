@@ -1,4 +1,13 @@
-import type { MemoryResourceInput, SlackSourceMetadata } from "@/lib/core/types";
+import type { MemoryResourceInput } from "@/lib/core/types";
+
+interface SlackSourceMetadata extends Record<string, unknown> {
+  source_type: "slack";
+  channel_id: string;
+  channel_name: string;
+  sender_id: string;
+  mentions: string[];
+  reactions: string[];
+}
 import type { SyntheticPerson, SyntheticProject, SyntheticWorld } from "./context";
 import { randomIsoBetween, type SeededRng } from "./random";
 
@@ -10,9 +19,10 @@ interface SlackGeneratorParams {
   endIso: string;
 }
 
-const reactions = [":thumbsup:", ":eyes:", ":rocket:", ":white_check_mark:"];
+const normalReactions = [":thumbsup:", ":eyes:", ":rocket:", ":white_check_mark:"];
+const spicyReactions = [":face_with_rolling_eyes:", ":clown_face:", ":skull:", ":thinking_face:", ":upside_down_face:"];
 
-function buildSlackMessage(
+function buildNormalMessage(
   project: SyntheticProject,
   speaker: SyntheticPerson,
   reviewer: SyntheticPerson,
@@ -24,6 +34,32 @@ function buildSlackMessage(
     `Plan for ${project.key}: we are going to merge the API refactor tomorrow. If test coverage stays above 90% we can keep the target date.`,
     `Important: budget is still within threshold, but the integration test failure rate hit ${rng.int(8, 18)}%. We need a fix before ${project.target_date}.`,
     `I agreed with ${reviewer.name} that we will ship the onboarding copy updates this week and hold analytics polish for next sprint.`,
+  ];
+  return rng.pick(templates);
+}
+
+function buildSpicyMessage(
+  project: SyntheticProject,
+  speaker: SyntheticPerson,
+  target: SyntheticPerson,
+  world: SyntheticWorld,
+  rng: SeededRng
+): string {
+  const conflict = rng.pick(world.conflicts);
+  const templates = [
+    // Heated disagreements
+    `@here Just so everyone is aware — the ${project.key} deadline was moved AGAIN. Third time this quarter. ${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}`,
+    `${target.name} I need to push back on this. ${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]} We can't keep doing this.`,
+    `I'm going to be direct: the ${project.name} situation is unacceptable. ${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}`,
+
+    // Passive-aggressive
+    `${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]} cc ${target.name}`,
+    `Just following up on the ${project.key} action items from last week's meeting. ${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}`,
+    `@${target.name} ${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}`,
+
+    // Reply-chain escalation
+    `Thread on ${project.key}: I've raised this ${rng.int(3, 7)} times now. ${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]} Looping in ${rng.pick(world.people.filter(p => p.id !== speaker.id)).name} for visibility.`,
+    `Not sure why we're still debating this. The data is clear. ${project.name} is ${rng.int(2, 5)} weeks behind and we're pretending it's fine. ${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}`,
   ];
   return rng.pick(templates);
 }
@@ -40,14 +76,21 @@ export function generateSlackResources({
   for (let i = 0; i < count; i++) {
     const project = rng.pick(world.projects);
     const speaker = rng.pick(world.people);
-    const reviewer = rng.pick(world.people.filter((p) => p.id !== speaker.id));
+    const target = rng.pick(world.people.filter((p) => p.id !== speaker.id));
     const threadTs = `${Math.floor(new Date(startIso).getTime() / 1000) + i}.000${rng.int(100, 999)}`;
+    const isSpicy = rng.bool(0.4);
+
     const mentionedPeople = world.people
-      .filter((p) => p.id !== speaker.id && rng.bool(0.35))
-      .slice(0, 2)
+      .filter((p) => p.id !== speaker.id && rng.bool(isSpicy ? 0.5 : 0.35))
+      .slice(0, 3)
       .map((p) => p.name);
-    const message = buildSlackMessage(project, speaker, reviewer, rng);
+
+    const message = isSpicy
+      ? buildSpicyMessage(project, speaker, target, world, rng)
+      : buildNormalMessage(project, speaker, target, rng);
+
     const occurredAt = randomIsoBetween(rng, startIso, endIso);
+    const reactionPool = isSpicy ? [...normalReactions, ...spicyReactions] : normalReactions;
 
     const metadata: SlackSourceMetadata = {
       source_type: "slack",
@@ -56,7 +99,7 @@ export function generateSlackResources({
       thread_ts: threadTs,
       sender_id: speaker.id,
       mentions: mentionedPeople,
-      reactions: reactions.filter(() => rng.bool(0.4)),
+      reactions: reactionPool.filter(() => rng.bool(isSpicy ? 0.5 : 0.3)),
       source_url: `https://slack.com/app_redirect?channel=${project.channel_id}`,
     };
 
@@ -64,7 +107,7 @@ export function generateSlackResources({
       clone_id: world.cloneId,
       source_type: "slack",
       external_id: `slack_${project.key.toLowerCase()}_${i + 1}`,
-      title: `#${project.channel} update`,
+      title: `#${project.channel} ${isSpicy ? "debate" : "update"}`,
       author: speaker.name,
       content: message,
       occurred_at: occurredAt,

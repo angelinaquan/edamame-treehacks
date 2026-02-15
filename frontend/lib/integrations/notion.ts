@@ -187,13 +187,18 @@ export async function syncNotionContextToSupabase(opts: {
     pageLimit: opts.pageLimit,
   });
   const supabase = createServerSupabaseClient();
+  const now = new Date().toISOString();
 
   const snapshotInsert = await supabase
-    .from("notion_context_snapshots")
+    .from("memories")
     .insert({
       clone_id: opts.cloneId,
-      query: opts.query ?? null,
-      payload: context,
+      type: "snapshot",
+      source: "notion",
+      content: JSON.stringify(context),
+      confidence: 1.0,
+      metadata: { query: opts.query, pages_scanned: context.pages_scanned },
+      occurred_at: now,
     })
     .select("id")
     .single();
@@ -214,78 +219,78 @@ export async function syncNotionContextToSupabase(opts: {
     };
   }
 
-  const documentInsert = await supabase
-    .from("documents")
-    .insert(
-      context.pages.map((page) => ({
-        clone_id: opts.cloneId,
-        title: `Notion: ${page.title}`,
-        content:
-          `Notion page snapshot\n` +
-          `Title: ${page.title}\n` +
-          `URL: ${page.url ?? "N/A"}\n` +
-          `Last edited: ${page.last_edited_time ?? "N/A"}\n\n` +
-          `${page.content}`,
-        doc_type: "notion_page",
-      }))
-    )
-    .select("id, title, content");
+  const memoryRows: Array<{
+    clone_id: string;
+    type: string;
+    source: string;
+    content: string;
+    confidence: number;
+    metadata: Record<string, unknown>;
+    occurred_at: string;
+  }> = [];
 
-  if (documentInsert.error || !documentInsert.data) {
-    throw new Error(
-      `Failed to save Notion documents: ${documentInsert.error?.message ?? "unknown error"}`
-    );
+  let chunksCreated = 0;
+  for (const page of context.pages) {
+    const docTitle = `Notion: ${page.title}`;
+    const docContent =
+      `Notion page snapshot\n` +
+      `Title: ${page.title}\n` +
+      `URL: ${page.url ?? "N/A"}\n` +
+      `Last edited: ${page.last_edited_time ?? "N/A"}\n\n` +
+      `${page.content}`;
+    const occurredAt = page.last_edited_time || now;
+
+    memoryRows.push({
+      clone_id: opts.cloneId,
+      type: "document",
+      source: "notion",
+      content: docContent,
+      confidence: 0.9,
+      metadata: {
+        title: docTitle,
+        doc_type: "notion_page",
+        snapshot_id: snapshotId,
+        notion_page_id: page.page_id,
+        notion_page_url: page.url,
+      },
+      occurred_at: occurredAt,
+    });
+
+    if (docContent.trim()) {
+      const chunks = chunkText(docContent, { chunkSize: 700, overlap: 100 });
+      for (const chunk of chunks) {
+        memoryRows.push({
+          clone_id: opts.cloneId,
+          type: "chunk",
+          source: "notion",
+          content: chunk.content,
+          confidence: 0.8,
+          metadata: {
+            ...chunk.metadata,
+            source_type: "page_snapshot",
+            snapshot_id: snapshotId,
+            notion_page_id: page.page_id,
+            notion_page_url: page.url,
+            document_title: docTitle,
+          },
+          occurred_at: occurredAt,
+        });
+        chunksCreated++;
+      }
+    }
   }
 
-  const chunkRows: {
-    document_id: string;
-    clone_id: string;
-    content: string;
-    metadata: Record<string, unknown>;
-  }[] = [];
-
-  const documents = documentInsert.data as {
-    id: string;
-    title: string;
-    content: string | null;
-  }[];
-
-  documents.forEach((document, index) => {
-    const rawContent = document.content ?? "";
-    if (!rawContent.trim()) return;
-    const page = context.pages[index];
-    const chunks = chunkText(rawContent, { chunkSize: 700, overlap: 100 });
-    chunks.forEach((chunk) => {
-      chunkRows.push({
-        document_id: document.id,
-        clone_id: opts.cloneId,
-        content: chunk.content,
-        metadata: {
-          ...chunk.metadata,
-          source: "notion",
-          source_type: "page_snapshot",
-          snapshot_id: snapshotId,
-          notion_page_id: page?.page_id ?? null,
-          notion_page_url: page?.url ?? null,
-          document_title: document.title,
-        },
-      });
-    });
-  });
-
-  if (chunkRows.length > 0) {
-    const chunkInsert = await supabase.from("chunks").insert(chunkRows);
-    if (chunkInsert.error) {
-      throw new Error(
-        `Failed to save Notion chunks: ${chunkInsert.error.message}`
-      );
+  if (memoryRows.length > 0) {
+    const { error } = await supabase.from("memories").insert(memoryRows);
+    if (error) {
+      throw new Error(`Failed to save Notion memories: ${error.message}`);
     }
   }
 
   return {
     snapshot_id: snapshotId,
     pages_scanned: context.pages_scanned,
-    documents_created: documents.length,
-    chunks_created: chunkRows.length,
+    documents_created: context.pages.length,
+    chunks_created: chunksCreated,
   };
 }

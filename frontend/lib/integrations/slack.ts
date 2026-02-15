@@ -235,23 +235,31 @@ export async function syncSlackContextToSupabase(opts: {
     0
   );
 
-  // 5. Save snapshot
+  // 5. Save snapshot + documents + chunks into unified memories table
   const supabase = createServerSupabaseClient();
+  const now = new Date().toISOString();
+
+  const snapshotPayload = {
+    channels_scanned: memberChannels.length,
+    messages_fetched: totalMessages,
+    generated_at: now,
+    channels: memberChannels.map((ch) => ({
+      id: ch.id,
+      name: ch.name,
+      num_members: ch.num_members,
+    })),
+  };
 
   const snapshotInsert = await supabase
-    .from("slack_context_snapshots")
+    .from("memories")
     .insert({
       clone_id: opts.cloneId,
-      payload: {
-        channels_scanned: memberChannels.length,
-        messages_fetched: totalMessages,
-        generated_at: new Date().toISOString(),
-        channels: memberChannels.map((ch) => ({
-          id: ch.id,
-          name: ch.name,
-          num_members: ch.num_members,
-        })),
-      },
+      type: "snapshot",
+      source: "slack",
+      content: JSON.stringify(snapshotPayload),
+      confidence: 1.0,
+      metadata: snapshotPayload,
+      occurred_at: now,
     })
     .select("id")
     .single();
@@ -264,7 +272,6 @@ export async function syncSlackContextToSupabase(opts: {
 
   const snapshotId = snapshotInsert.data.id as string;
 
-  // 6. Insert documents
   if (docs.length === 0) {
     return {
       snapshot_id: snapshotId,
@@ -275,63 +282,55 @@ export async function syncSlackContextToSupabase(opts: {
     };
   }
 
-  const documentInsert = await supabase
-    .from("documents")
-    .insert(
-      docs.map((doc) => ({
-        clone_id: opts.cloneId,
-        title: doc.title,
-        content: doc.content,
-        doc_type: "slack_message",
-      }))
-    )
-    .select("id, title, content");
-
-  if (documentInsert.error || !documentInsert.data) {
-    throw new Error(
-      `Failed to save Slack documents: ${documentInsert.error?.message ?? "unknown error"}`
-    );
-  }
-
-  // 7. Chunk and insert
-  const chunkRows: {
-    document_id: string;
+  // 6. Insert documents + chunks as memories
+  const memoryRows: Array<{
     clone_id: string;
+    type: string;
+    source: string;
     content: string;
+    confidence: number;
     metadata: Record<string, unknown>;
-  }[] = [];
+    occurred_at: string;
+  }> = [];
 
-  for (const document of documentInsert.data as {
-    id: string;
-    title: string;
-    content: string | null;
-  }[]) {
-    const content = document.content ?? "";
-    if (!content.trim()) continue;
+  let chunksCreated = 0;
+  for (const doc of docs) {
+    memoryRows.push({
+      clone_id: opts.cloneId,
+      type: "document",
+      source: "slack",
+      content: doc.content,
+      confidence: 0.9,
+      metadata: { title: doc.title, doc_type: "slack_message", snapshot_id: snapshotId },
+      occurred_at: now,
+    });
 
-    const textChunks = chunkText(content, { chunkSize: 700, overlap: 100 });
-    for (const chunk of textChunks) {
-      chunkRows.push({
-        document_id: document.id,
-        clone_id: opts.cloneId,
-        content: chunk.content,
-        metadata: {
-          ...chunk.metadata,
+    if (doc.content.trim()) {
+      const textChunks = chunkText(doc.content, { chunkSize: 700, overlap: 100 });
+      for (const chunk of textChunks) {
+        memoryRows.push({
+          clone_id: opts.cloneId,
+          type: "chunk",
           source: "slack",
-          source_type: "channel_messages",
-          snapshot_id: snapshotId,
-          document_title: document.title,
-        },
-      });
+          content: chunk.content,
+          confidence: 0.8,
+          metadata: {
+            ...chunk.metadata,
+            source_type: "channel_messages",
+            snapshot_id: snapshotId,
+            document_title: doc.title,
+          },
+          occurred_at: now,
+        });
+        chunksCreated++;
+      }
     }
   }
 
-  if (chunkRows.length > 0) {
-    const chunkInsert = await supabase.from("chunks").insert(chunkRows);
-    if (chunkInsert.error) {
-      throw new Error(
-        `Failed to save Slack chunks: ${chunkInsert.error.message}`
-      );
+  if (memoryRows.length > 0) {
+    const { error } = await supabase.from("memories").insert(memoryRows);
+    if (error) {
+      throw new Error(`Failed to save Slack memories: ${error.message}`);
     }
   }
 
@@ -340,6 +339,6 @@ export async function syncSlackContextToSupabase(opts: {
     channels_scanned: memberChannels.length,
     messages_fetched: totalMessages,
     documents_created: docs.length,
-    chunks_created: chunkRows.length,
+    chunks_created: chunksCreated,
   };
 }

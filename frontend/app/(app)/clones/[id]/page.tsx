@@ -3,13 +3,13 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, MessageSquare, Settings, FileText } from "lucide-react";
-import type { Clone, PersonContext, Document as DocType, Memory } from "@/lib/core/types";
+import type { Clone, PersonContext, Memory } from "@/lib/core/types";
 import { PersonCard } from "@/components/chat/PersonCard";
 
 interface CloneDetails {
   clone: Clone & {
     owner: PersonContext;
-    documents: DocType[];
+    documents: { id: string; title: string; content: string; doc_type: string; created_at: string }[];
     memories: Memory[];
     stats: {
       document_count: number;
@@ -123,7 +123,7 @@ export default function CloneDetailPage({
                 className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900"
               >
                 <p className="text-xs text-zinc-700 dark:text-zinc-300">
-                  {memory.fact}
+                  {memory.content}
                 </p>
                 <p className="mt-1 text-[10px] text-zinc-400">
                   Confidence: {Math.round(memory.confidence * 100)}%

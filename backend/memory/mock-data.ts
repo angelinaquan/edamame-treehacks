@@ -4,8 +4,17 @@ import type {
   PersonContext,
   ProactiveReminder,
   Memory,
-  Document,
 } from "@/lib/core/types";
+
+// Local mock document type (the Document type was removed from core types)
+interface MockDocument {
+  id: string;
+  clone_id: string;
+  title: string;
+  content: string;
+  doc_type: string;
+  created_at: string;
+}
 
 // ============================================
 // PEOPLE / USERS
@@ -79,7 +88,6 @@ export const mockPeople: PersonContext[] = [
 export const mockClones: Clone[] = [
   {
     id: "clone_self",
-    org_id: "org_1",
     owner_id: "user_self",
     name: "Alex Morgan",
     avatar_url: "/avatars/alex.png",
@@ -101,7 +109,6 @@ export const mockClones: Clone[] = [
   },
   {
     id: "clone_sarah",
-    org_id: "org_1",
     owner_id: "user_sarah",
     name: "Sarah Chen",
     avatar_url: "/avatars/sarah.png",
@@ -123,7 +130,6 @@ export const mockClones: Clone[] = [
   },
   {
     id: "clone_jason",
-    org_id: "org_1",
     owner_id: "user_jason",
     name: "Jason Park",
     avatar_url: "/avatars/jason.png",
@@ -240,7 +246,7 @@ export const mockMeetings: Meeting[] = [
 // ============================================
 // DOCUMENTS
 // ============================================
-export const mockDocuments: Document[] = [
+export const mockDocuments: MockDocument[] = [
   {
     id: "doc_1",
     clone_id: "clone_sarah",
@@ -403,7 +409,17 @@ export const mockSlackMessages: SlackMessage[] = [
 // ============================================
 // MEMORIES
 // ============================================
-export const mockMemories: Memory[] = [
+// Mock memories use a flat shape with `fact` for backward compat with clone-brain.ts
+// The real Memory type uses `content`, `type`, `source` etc.
+export interface MockMemory {
+  id: string;
+  clone_id: string;
+  fact: string;
+  confidence: number;
+  created_at: string;
+}
+
+export const mockMemories: MockMemory[] = [
   {
     id: "mem_1",
     clone_id: "clone_sarah",

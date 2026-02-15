@@ -3,24 +3,32 @@ import type {
   SyntheticGenerationOptions,
 } from "@/lib/core/types";
 import { buildSyntheticWorld } from "./context";
+import { generateEmailResources } from "./email";
+import { generateGdriveResources } from "./gdrive";
 import { generateGithubResources } from "./github";
+import { generateJiraResources } from "./jira";
 import { generateNotionResources } from "./notion";
 import { createSeededRng } from "./random";
 import { generateSlackResources } from "./slack";
 
-const DEFAULT_SOURCES: ("slack" | "notion" | "github")[] = [
+export type SyntheticSource = "slack" | "notion" | "github" | "jira" | "gdrive" | "email";
+
+const ALL_SOURCES: SyntheticSource[] = [
   "slack",
   "notion",
   "github",
+  "jira",
+  "gdrive",
+  "email",
 ];
 
 const VOLUME_CONFIG: Record<
   NonNullable<SyntheticGenerationOptions["volume"]>,
-  Record<"slack" | "notion" | "github", number>
+  Record<SyntheticSource, number>
 > = {
-  small: { slack: 8, notion: 4, github: 6 },
-  medium: { slack: 16, notion: 8, github: 12 },
-  large: { slack: 28, notion: 12, github: 20 },
+  small: { slack: 8, notion: 4, github: 6, jira: 6, gdrive: 4, email: 6 },
+  medium: { slack: 16, notion: 8, github: 12, jira: 10, gdrive: 8, email: 12 },
+  large: { slack: 28, notion: 12, github: 20, jira: 16, gdrive: 12, email: 20 },
 };
 
 export interface SyntheticGenerationResult {
@@ -28,7 +36,7 @@ export interface SyntheticGenerationResult {
   startIso: string;
   endIso: string;
   resources: MemoryResourceInput[];
-  counts: Record<"slack" | "notion" | "github", number>;
+  counts: Record<SyntheticSource, number>;
 }
 
 function resolveDateRange(options?: SyntheticGenerationOptions["dateRange"]): {
@@ -48,52 +56,48 @@ export function generateSyntheticResources(
   const seed = String(options.seed ?? `${options.cloneId}-synthetic-seed`);
   const rng = createSeededRng(seed);
   const world = buildSyntheticWorld(options.cloneId, rng);
-  const sources = options.sources?.length ? options.sources : DEFAULT_SOURCES;
+  const requestedSources = options.sources?.length ? options.sources : ALL_SOURCES;
   const volume = options.volume ?? "medium";
   const counts = { ...VOLUME_CONFIG[volume] };
   const { startIso, endIso } = resolveDateRange(options.dateRange);
 
   const resources: MemoryResourceInput[] = [];
-  if (sources.includes("slack")) {
-    resources.push(
-      ...generateSlackResources({
-        world,
-        rng,
-        count: counts.slack,
-        startIso,
-        endIso,
-      })
-    );
+  const params = { world, rng, startIso, endIso };
+
+  if (requestedSources.includes("slack")) {
+    resources.push(...generateSlackResources({ ...params, count: counts.slack }));
   } else {
     counts.slack = 0;
   }
 
-  if (sources.includes("notion")) {
-    resources.push(
-      ...generateNotionResources({
-        world,
-        rng,
-        count: counts.notion,
-        startIso,
-        endIso,
-      })
-    );
+  if (requestedSources.includes("notion")) {
+    resources.push(...generateNotionResources({ ...params, count: counts.notion }));
   } else {
     counts.notion = 0;
   }
 
-  if (sources.includes("github")) {
-    resources.push(
-      ...generateGithubResources({
-        world,
-        rng,
-        count: counts.github,
-        startIso,
-        endIso,
-      })
-    );
+  if (requestedSources.includes("github")) {
+    resources.push(...generateGithubResources({ ...params, count: counts.github }));
   } else {
     counts.github = 0;
+  }
+
+  if (requestedSources.includes("jira")) {
+    resources.push(...generateJiraResources({ ...params, count: counts.jira }));
+  } else {
+    counts.jira = 0;
+  }
+
+  if (requestedSources.includes("gdrive")) {
+    resources.push(...generateGdriveResources({ ...params, count: counts.gdrive }));
+  } else {
+    counts.gdrive = 0;
+  }
+
+  if (requestedSources.includes("email")) {
+    resources.push(...generateEmailResources({ ...params, count: counts.email }));
+  } else {
+    counts.email = 0;
   }
 
   resources.sort((a, b) =>

@@ -1,8 +1,35 @@
--- AI Clone Platform Database Schema (Consolidated)
--- Run this in your Supabase SQL editor
+-- =============================================================
+-- MIGRATION: Consolidate 18 tables → 4 tables
+-- Run this in your Supabase SQL Editor (https://supabase.com/dashboard/project/_/sql)
+-- =============================================================
 
--- Enable pgvector extension
+-- Step 1: Drop all old tables (order matters due to foreign keys)
+-- Drop tables that reference other tables first
+
+DROP TABLE IF EXISTS integrations CASCADE;
+DROP TABLE IF EXISTS clone_interactions CASCADE;
+DROP TABLE IF EXISTS messages CASCADE;
+DROP TABLE IF EXISTS conversations CASCADE;
+DROP TABLE IF EXISTS memories CASCADE;
+DROP TABLE IF EXISTS chunks CASCADE;
+DROP TABLE IF EXISTS documents CASCADE;
+DROP TABLE IF EXISTS memory_items CASCADE;
+DROP TABLE IF EXISTS memory_categories CASCADE;
+DROP TABLE IF EXISTS memory_resources CASCADE;
+DROP TABLE IF EXISTS memory_runs CASCADE;
+DROP TABLE IF EXISTS github_context_snapshots CASCADE;
+DROP TABLE IF EXISTS notion_context_snapshots CASCADE;
+DROP TABLE IF EXISTS google_drive_context_snapshots CASCADE;
+DROP TABLE IF EXISTS slack_context_snapshots CASCADE;
+DROP TABLE IF EXISTS integration_credentials CASCADE;
+DROP TABLE IF EXISTS clones CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS organizations CASCADE;
+
+-- Step 2: Enable pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Step 3: Create consolidated schema (4 tables)
 
 -- Clones (one per person — includes owner info directly)
 CREATE TABLE clones (
@@ -21,9 +48,6 @@ CREATE TABLE clones (
 );
 
 -- Memories (all clone knowledge: documents, chunks, facts, snapshots, categories)
---   type: what kind of memory this is
---   source: where it came from
---   metadata: type-specific fields (title, author, channel_id, repo, doc_type, etc.)
 CREATE TABLE memories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clone_id UUID REFERENCES clones(id) ON DELETE CASCADE,
@@ -57,7 +81,7 @@ CREATE TABLE integrations (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
+-- Step 4: Create indexes
 CREATE INDEX idx_memories_clone_id ON memories(clone_id);
 CREATE INDEX idx_memories_type ON memories(clone_id, type);
 CREATE INDEX idx_memories_source ON memories(clone_id, source);

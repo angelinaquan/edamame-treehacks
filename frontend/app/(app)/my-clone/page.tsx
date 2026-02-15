@@ -97,7 +97,7 @@ export default function MyClonePage() {
                 className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900"
               >
                 <p className="text-xs text-zinc-700 dark:text-zinc-300">
-                  {mem.fact}
+                  {mem.content}
                 </p>
               </div>
             ))}

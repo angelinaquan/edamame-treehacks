@@ -50,15 +50,17 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServerSupabaseClient();
-    const [{ count: documentCount }, { count: memoryCount }] = await Promise.all([
-      supabase
-        .from("documents")
-        .select("*", { count: "exact", head: true })
-        .eq("clone_id", cloneId),
+    const [{ count: documentCount }, { count: factCount }] = await Promise.all([
       supabase
         .from("memories")
         .select("*", { count: "exact", head: true })
-        .eq("clone_id", cloneId),
+        .eq("clone_id", cloneId)
+        .eq("type", "document"),
+      supabase
+        .from("memories")
+        .select("*", { count: "exact", head: true })
+        .eq("clone_id", cloneId)
+        .eq("type", "fact"),
     ]);
 
     const query = "What changed recently for Atlas Security Rollout?";
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
       ingest: ingestResult,
       verify: {
         document_count: documentCount || 0,
-        memory_count: memoryCount || 0,
+        fact_count: factCount || 0,
         query,
         context_item_count: context?.items.length || 0,
         context_category_count: context?.categories.length || 0,

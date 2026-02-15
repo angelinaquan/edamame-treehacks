@@ -1,5 +1,6 @@
 /**
  * Memory — organizational knowledge storage, retrieval, and compaction.
+ * All knowledge lives in a single `memories` table with type/source discriminators.
  * Supports Supabase and Mem0 providers with fallback.
  */
 
@@ -114,7 +115,7 @@ export function searchKnowledgeBase(
   return results;
 }
 
-export function getCloneMemories(cloneId: string): Memory[] {
+export function getCloneMemories(cloneId: string) {
   return mockMemories.filter((m) => m.clone_id === cloneId);
 }
 
@@ -144,9 +145,12 @@ export function saveFact(
   const memory: Memory = {
     id: `mem_${Date.now()}`,
     clone_id: cloneId,
-    fact,
-    source_conversation_id: conversationId,
+    type: "fact",
+    source: "conversation",
+    content: fact,
     confidence: 0.85,
+    metadata: { source_conversation_id: conversationId },
+    occurred_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
   };
   return memory;
@@ -177,36 +181,44 @@ export async function getKnowledgeContext(
     .filter((t) => t.length >= 3)
     .slice(0, 6);
 
+  // Fetch categories (type = 'category')
   const categoryQuery = supabase
-    .from("memory_categories")
-    .select("category_key, summary, confidence, updated_at")
+    .from("memories")
+    .select("content, confidence, metadata, occurred_at")
     .eq("clone_id", cloneId)
-    .order("updated_at", { ascending: false })
+    .eq("type", "category")
+    .order("occurred_at", { ascending: false })
     .limit(4);
 
+  // Fetch fact items (type = 'fact')
   let itemQuery = supabase
-    .from("memory_items")
-    .select("fact, confidence, source_type, occurred_at, category_key")
+    .from("memories")
+    .select("content, confidence, source, occurred_at, metadata")
     .eq("clone_id", cloneId)
+    .eq("type", "fact")
     .order("confidence", { ascending: false })
     .limit(topK * 2);
 
+  // Fetch chunks (type = 'chunk')
   let chunkQuery = supabase
-    .from("chunks")
-    .select("id, document_id, clone_id, content, metadata, created_at")
+    .from("memories")
+    .select("id, clone_id, content, metadata, created_at")
     .eq("clone_id", cloneId)
+    .eq("type", "chunk")
     .order("created_at", { ascending: false })
     .limit(topK * 3);
 
   if (terms.length > 0) {
-    itemQuery = itemQuery.or(buildIlikeOr("fact", terms));
+    itemQuery = itemQuery.or(buildIlikeOr("content", terms));
     chunkQuery = chunkQuery.or(buildIlikeOr("content", terms));
   }
 
+  // Fetch documents/snapshots as resources (type in document, snapshot)
   const resourceQuery = supabase
-    .from("memory_resources")
-    .select("source_type, title, author, occurred_at, content")
+    .from("memories")
+    .select("source, content, metadata, occurred_at")
     .eq("clone_id", cloneId)
+    .in("type", ["document", "snapshot"])
     .order("occurred_at", { ascending: false })
     .limit(6);
 
@@ -215,37 +227,36 @@ export async function getKnowledgeContext(
 
   return {
     categories:
-      categories?.map((row: { category_key: string; summary: string; confidence: number | null }) => ({
-        category_key: row.category_key,
-        summary: row.summary,
+      categories?.map((row: { content: string; confidence: number | null; metadata: Record<string, unknown> }) => ({
+        category_key: String(row.metadata?.category_key || "general"),
+        summary: row.content,
         confidence: row.confidence ?? 0.5,
       })) || [],
     items:
       items?.map((row: {
-        fact: string;
+        content: string;
         confidence: number | null;
-        source_type: string;
+        source: string;
         occurred_at: string;
-        category_key: string | null;
+        metadata: Record<string, unknown>;
       }) => ({
-        fact: row.fact,
+        fact: row.content,
         confidence: row.confidence ?? 0.5,
-        source_type: row.source_type,
+        source_type: row.source,
         occurred_at: row.occurred_at,
-        category_key: row.category_key || undefined,
+        category_key: row.metadata?.category_key as string | undefined,
       })) || [],
     chunks: (chunks as Chunk[]) || [],
     resources:
       resources?.map((row: {
-        source_type: string;
-        title: string | null;
-        author: string | null;
-        occurred_at: string;
+        source: string;
         content: string;
+        metadata: Record<string, unknown>;
+        occurred_at: string;
       }) => ({
-        source_type: row.source_type,
-        title: row.title || undefined,
-        author: row.author || undefined,
+        source_type: row.source,
+        title: row.metadata?.title as string | undefined,
+        author: row.metadata?.author as string | undefined,
         occurred_at: row.occurred_at,
         content: row.content,
       })) || [],
@@ -262,13 +273,13 @@ export async function runWeeklySummarization(
   const supabase = createServerSupabaseClient();
   const weeklyCutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString();
 
+  // Find stale fact items
   const { data: staleItems, error } = await supabase
-    .from("memory_items")
-    .select(
-      "id, fact, confidence, source_type, category_key, occurred_at, created_at"
-    )
+    .from("memories")
+    .select("id, content, confidence, source, metadata, occurred_at, created_at")
     .eq("clone_id", cloneId)
-    .eq("compaction_state", "active")
+    .eq("type", "fact")
+    .eq("metadata->>compaction_state", "active")
     .lt("occurred_at", weeklyCutoff)
     .order("occurred_at", { ascending: true })
     .limit(500);
@@ -277,9 +288,19 @@ export async function runWeeklySummarization(
     return { categoriesCreated: 0, itemsUpdated: 0 };
   }
 
-  const grouped = new Map<string, typeof staleItems>();
-  for (const item of staleItems) {
-    const key = `${item.source_type}:${item.category_key || "general"}`;
+  type StaleItem = {
+    id: string;
+    content: string;
+    confidence: number | null;
+    source: string;
+    metadata: Record<string, unknown>;
+    occurred_at: string;
+  };
+
+  const grouped = new Map<string, StaleItem[]>();
+  for (const item of staleItems as StaleItem[]) {
+    const categoryKey = String(item.metadata?.category_key || "general");
+    const key = `${item.source}:${categoryKey}`;
     const existing = grouped.get(key) || [];
     existing.push(item);
     grouped.set(key, existing);
@@ -288,46 +309,38 @@ export async function runWeeklySummarization(
   const categoryRows = Array.from(grouped.entries()).map(([key, items]) => {
     const [sourceType, categoryKey] = key.split(":");
     const confidence =
-      items.reduce(
-        (sum: number, item: { confidence: number | null }) =>
-          sum + (item.confidence || 0.5),
-        0
-      ) /
-      items.length;
+      items.reduce((sum, item) => sum + (item.confidence || 0.5), 0) / items.length;
     return {
       clone_id: cloneId,
-      category_type:
-        sourceType === "slack"
-          ? "topic"
-          : sourceType === "github"
-            ? "project"
-            : "timeline",
-      category_key: categoryKey,
-      summary: summarizeLines(items.map((i: { fact: string }) => i.fact), 4),
-      item_count: items.length,
+      type: "category" as const,
+      source: sourceType,
+      content: summarizeLines(items.map((i) => i.content), 4),
       confidence,
-      time_window_start: items[0]?.occurred_at,
-      time_window_end: items[items.length - 1]?.occurred_at,
-      last_item_at: items[items.length - 1]?.occurred_at,
-      is_monthly_snapshot: false,
       metadata: {
-        source_type: sourceType,
+        category_type: sourceType === "slack" ? "topic" : sourceType === "github" ? "project" : "timeline",
+        category_key: categoryKey,
+        item_count: items.length,
+        time_window_start: items[0]?.occurred_at,
+        time_window_end: items[items.length - 1]?.occurred_at,
+        is_monthly_snapshot: false,
         compaction: "weekly",
       },
+      occurred_at: items[items.length - 1]?.occurred_at,
     };
   });
 
   const { error: categoryInsertError } = await supabase
-    .from("memory_categories")
+    .from("memories")
     .insert(categoryRows);
   if (categoryInsertError) {
     throw new Error(categoryInsertError.message);
   }
 
-  const staleIds = staleItems.map((item: { id: string }) => item.id);
+  // Mark stale items as weekly_summarized via metadata
+  const staleIds = (staleItems as StaleItem[]).map((item) => item.id);
   const { data: updatedRows, error: itemUpdateError } = await supabase
-    .from("memory_items")
-    .update({ compaction_state: "weekly_summarized" })
+    .from("memories")
+    .update({ metadata: { compaction_state: "weekly_summarized" } })
     .in("id", staleIds)
     .select("id");
 
@@ -353,59 +366,56 @@ export async function runMonthlyRewind(
     Date.now() - 1000 * 60 * 60 * 24 * 30
   ).toISOString();
 
+  // Find old category memories that aren't monthly snapshots yet
   const { data: categories, error: categoriesError } = await supabase
-    .from("memory_categories")
-    .select(
-      "category_type, category_key, summary, confidence, item_count, time_window_start, time_window_end, last_item_at, metadata"
-    )
+    .from("memories")
+    .select("content, confidence, source, metadata, occurred_at")
     .eq("clone_id", cloneId)
-    .eq("is_monthly_snapshot", false)
-    .lt("updated_at", monthlyCutoff)
+    .eq("type", "category")
+    .neq("metadata->>is_monthly_snapshot", "true")
+    .lt("occurred_at", monthlyCutoff)
     .limit(300);
 
   if (categoriesError || !categories || categories.length === 0) {
     return { categoriesCreated: 0, itemsUpdated: 0, snapshotsCreated: 0 };
   }
 
-  const snapshotRows = categories.map((category: {
-    category_type: string;
-    category_key: string;
-    summary: string;
+  type CategoryRow = {
+    content: string;
     confidence: number;
-    item_count: number;
-    time_window_start: string | null;
-    time_window_end: string | null;
-    last_item_at: string | null;
-    metadata: Record<string, unknown> | null;
-  }) => ({
+    source: string;
+    metadata: Record<string, unknown>;
+    occurred_at: string;
+  };
+
+  const snapshotRows = (categories as CategoryRow[]).map((category) => ({
     clone_id: cloneId,
-    category_type: category.category_type,
-    category_key: category.category_key,
-    summary: `Monthly rewind: ${category.summary}`,
-    item_count: category.item_count,
+    type: "category" as const,
+    source: category.source,
+    content: `Monthly rewind: ${category.content}`,
     confidence: category.confidence,
-    time_window_start: category.time_window_start,
-    time_window_end: category.time_window_end,
-    last_item_at: category.last_item_at,
-    is_monthly_snapshot: true,
     metadata: {
       ...(category.metadata || {}),
+      is_monthly_snapshot: true,
       compaction: "monthly_rewind",
     },
+    occurred_at: category.occurred_at,
   }));
 
   const { error: snapshotInsertError } = await supabase
-    .from("memory_categories")
+    .from("memories")
     .insert(snapshotRows);
   if (snapshotInsertError) {
     throw new Error(snapshotInsertError.message);
   }
 
+  // Mark old fact items as monthly_rewound
   const { data: rewoundItems, error: itemsError } = await supabase
-    .from("memory_items")
-    .update({ compaction_state: "monthly_rewound" })
+    .from("memories")
+    .update({ metadata: { compaction_state: "monthly_rewound" } })
     .eq("clone_id", cloneId)
-    .neq("compaction_state", "monthly_rewound")
+    .eq("type", "fact")
+    .neq("metadata->>compaction_state", "monthly_rewound")
     .lt("occurred_at", monthlyCutoff)
     .select("id");
 

@@ -325,13 +325,18 @@ export async function syncGitHubContextToSupabase(opts: {
   });
 
   const supabase = createServerSupabaseClient();
+  const now = new Date().toISOString();
 
   const snapshotInsert = await supabase
-    .from("github_context_snapshots")
+    .from("memories")
     .insert({
       clone_id: opts.cloneId,
-      github_username: opts.username,
-      payload: context,
+      type: "snapshot",
+      source: "github",
+      content: JSON.stringify(context),
+      confidence: 1.0,
+      metadata: { github_username: opts.username, repositories_scanned: context.repositories_scanned },
+      occurred_at: now,
     })
     .select("id")
     .single();
@@ -356,63 +361,55 @@ export async function syncGitHubContextToSupabase(opts: {
     };
   }
 
-  const documentInsert = await supabase
-    .from("documents")
-    .insert(
-      repositoryDocs.map((doc) => ({
-        clone_id: opts.cloneId,
-        title: doc.title,
-        content: doc.content,
-        doc_type: "document",
-      }))
-    )
-    .select("id, title, content");
-
-  if (documentInsert.error || !documentInsert.data) {
-    throw new Error(
-      `Failed to save GitHub documents: ${documentInsert.error?.message ?? "unknown error"}`
-    );
-  }
-
-  const chunkRows: {
-    document_id: string;
+  const memoryRows: Array<{
     clone_id: string;
+    type: string;
+    source: string;
     content: string;
+    confidence: number;
     metadata: Record<string, unknown>;
-  }[] = [];
+    occurred_at: string;
+  }> = [];
 
-  for (const document of documentInsert.data as {
-    id: string;
-    title: string;
-    content: string | null;
-  }[]) {
-    const content = document.content ?? "";
-    if (!content.trim()) continue;
+  let chunksCreated = 0;
+  for (const doc of repositoryDocs) {
+    memoryRows.push({
+      clone_id: opts.cloneId,
+      type: "document",
+      source: "github",
+      content: doc.content,
+      confidence: 0.9,
+      metadata: { title: doc.title, doc_type: "document", snapshot_id: snapshotId, github_username: opts.username },
+      occurred_at: now,
+    });
 
-    const textChunks = chunkText(content, { chunkSize: 700, overlap: 100 });
-    for (const chunk of textChunks) {
-      chunkRows.push({
-        document_id: document.id,
-        clone_id: opts.cloneId,
-        content: chunk.content,
-        metadata: {
-          ...chunk.metadata,
+    if (doc.content.trim()) {
+      const textChunks = chunkText(doc.content, { chunkSize: 700, overlap: 100 });
+      for (const chunk of textChunks) {
+        memoryRows.push({
+          clone_id: opts.cloneId,
+          type: "chunk",
           source: "github",
-          source_type: "repository_snapshot",
-          github_username: opts.username,
-          snapshot_id: snapshotId,
-          document_title: document.title,
-        },
-      });
+          content: chunk.content,
+          confidence: 0.8,
+          metadata: {
+            ...chunk.metadata,
+            source_type: "repository_snapshot",
+            github_username: opts.username,
+            snapshot_id: snapshotId,
+            document_title: doc.title,
+          },
+          occurred_at: now,
+        });
+        chunksCreated++;
+      }
     }
   }
 
-  if (chunkRows.length > 0) {
-    const chunkInsert = await supabase.from("chunks").insert(chunkRows);
-    if (chunkInsert.error) {
-      throw new Error(
-        `Failed to save GitHub chunks: ${chunkInsert.error.message}`
-      );
+  if (memoryRows.length > 0) {
+    const { error } = await supabase.from("memories").insert(memoryRows);
+    if (error) {
+      throw new Error(`Failed to save GitHub memories: ${error.message}`);
     }
   }
 
@@ -420,7 +417,7 @@ export async function syncGitHubContextToSupabase(opts: {
     snapshot_id: snapshotId,
     repositories_scanned: context.repositories_scanned,
     documents_created: repositoryDocs.length,
-    chunks_created: chunkRows.length,
+    chunks_created: chunksCreated,
   };
 }
 

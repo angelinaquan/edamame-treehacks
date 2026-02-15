@@ -150,13 +150,14 @@ async function generateConsultationResponse(
       const supabase = createServerSupabaseClient();
       const { data } = await supabase
         .from("memories")
-        .select("fact")
+        .select("content")
         .eq("clone_id", clone.id)
+        .eq("type", "fact")
         .order("created_at", { ascending: false })
         .limit(6);
       relevantFacts =
         (data || [])
-          .map((row: { fact: string }) => row.fact)
+          .map((row: { content: string }) => row.content)
           .filter(Boolean)
           .join(". ") || "";
     } catch {

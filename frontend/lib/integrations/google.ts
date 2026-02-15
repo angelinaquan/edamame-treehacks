@@ -214,13 +214,18 @@ export async function syncGoogleDriveContextToSupabase(opts: {
     fileLimit: opts.fileLimit,
   });
   const supabase = createServerSupabaseClient();
+  const now = new Date().toISOString();
 
   const snapshotInsert = await supabase
-    .from("google_drive_context_snapshots")
+    .from("memories")
     .insert({
       clone_id: opts.cloneId,
-      query: opts.query ?? null,
-      payload: context,
+      type: "snapshot",
+      source: "gdrive",
+      content: JSON.stringify(context),
+      confidence: 1.0,
+      metadata: { query: opts.query, files_scanned: context.files_scanned },
+      occurred_at: now,
     })
     .select("id")
     .single();
@@ -241,85 +246,83 @@ export async function syncGoogleDriveContextToSupabase(opts: {
     };
   }
 
-  const documentInsert = await supabase
-    .from("documents")
-    .insert(
-      context.files.map((file) => ({
-        clone_id: opts.cloneId,
-        title: `Google Drive: ${file.name}`,
-        content:
-          `Google Drive file snapshot\n` +
-          `File name: ${file.name}\n` +
-          `File ID: ${file.file_id}\n` +
-          `MIME type: ${file.mime_type}\n` +
-          `Owners: ${file.owners.join(", ") || "Unknown"}\n` +
-          `URL: ${file.web_view_link ?? "N/A"}\n` +
-          `Modified: ${file.modified_time ?? "N/A"}\n\n` +
-          `${file.content}`,
+  const memoryRows: Array<{
+    clone_id: string;
+    type: string;
+    source: string;
+    content: string;
+    confidence: number;
+    metadata: Record<string, unknown>;
+    occurred_at: string;
+  }> = [];
+
+  let chunksCreated = 0;
+  for (const file of context.files) {
+    const docTitle = `Google Drive: ${file.name}`;
+    const docContent =
+      `Google Drive file snapshot\n` +
+      `File name: ${file.name}\n` +
+      `File ID: ${file.file_id}\n` +
+      `MIME type: ${file.mime_type}\n` +
+      `Owners: ${file.owners.join(", ") || "Unknown"}\n` +
+      `URL: ${file.web_view_link ?? "N/A"}\n` +
+      `Modified: ${file.modified_time ?? "N/A"}\n\n` +
+      `${file.content}`;
+    const occurredAt = file.modified_time || now;
+
+    memoryRows.push({
+      clone_id: opts.cloneId,
+      type: "document",
+      source: "gdrive",
+      content: docContent,
+      confidence: 0.9,
+      metadata: {
+        title: docTitle,
         doc_type: "google_drive_file",
         file_url: file.web_view_link,
-      }))
-    )
-    .select("id, title, content");
+        snapshot_id: snapshotId,
+        google_file_id: file.file_id,
+        google_file_name: file.name,
+      },
+      occurred_at: occurredAt,
+    });
 
-  if (documentInsert.error || !documentInsert.data) {
-    throw new Error(
-      `Failed to save Google Drive documents: ${documentInsert.error?.message ?? "unknown error"}`
-    );
+    if (docContent.trim()) {
+      const chunks = chunkText(docContent, { chunkSize: 700, overlap: 100 });
+      for (const chunk of chunks) {
+        memoryRows.push({
+          clone_id: opts.cloneId,
+          type: "chunk",
+          source: "gdrive",
+          content: chunk.content,
+          confidence: 0.8,
+          metadata: {
+            ...chunk.metadata,
+            source_type: "file_snapshot",
+            snapshot_id: snapshotId,
+            google_file_id: file.file_id,
+            google_file_name: file.name,
+            document_title: docTitle,
+          },
+          occurred_at: occurredAt,
+        });
+        chunksCreated++;
+      }
+    }
   }
 
-  const chunkRows: {
-    document_id: string;
-    clone_id: string;
-    content: string;
-    metadata: Record<string, unknown>;
-  }[] = [];
-
-  const documents = documentInsert.data as {
-    id: string;
-    title: string;
-    content: string | null;
-  }[];
-
-  documents.forEach((document, index) => {
-    const rawContent = document.content ?? "";
-    if (!rawContent.trim()) return;
-    const sourceFile = context.files[index];
-    const chunks = chunkText(rawContent, { chunkSize: 700, overlap: 100 });
-    chunks.forEach((chunk) => {
-      chunkRows.push({
-        document_id: document.id,
-        clone_id: opts.cloneId,
-        content: chunk.content,
-        metadata: {
-          ...chunk.metadata,
-          source: "google_drive",
-          source_type: "file_snapshot",
-          snapshot_id: snapshotId,
-          google_file_id: sourceFile?.file_id ?? null,
-          google_file_name: sourceFile?.name ?? null,
-          google_file_mime_type: sourceFile?.mime_type ?? null,
-          google_file_url: sourceFile?.web_view_link ?? null,
-          document_title: document.title,
-        },
-      });
-    });
-  });
-
-  if (chunkRows.length > 0) {
-    const chunkInsert = await supabase.from("chunks").insert(chunkRows);
-    if (chunkInsert.error) {
-      throw new Error(
-        `Failed to save Google Drive chunks: ${chunkInsert.error.message}`
-      );
+  if (memoryRows.length > 0) {
+    const { error } = await supabase.from("memories").insert(memoryRows);
+    if (error) {
+      throw new Error(`Failed to save Google Drive memories: ${error.message}`);
     }
   }
 
   return {
     snapshot_id: snapshotId,
     files_scanned: context.files_scanned,
-    documents_created: documents.length,
-    chunks_created: chunkRows.length,
+    documents_created: context.files.length,
+    chunks_created: chunksCreated,
   };
 }
 
@@ -446,83 +449,79 @@ export async function syncGmailToSupabase(opts: {
     return { messages_fetched: 0, documents_created: 0, chunks_created: 0 };
   }
 
-  // Insert documents
-  const documentInsert = await supabase
-    .from("documents")
-    .insert(
-      messages.map((msg) => ({
-        clone_id: opts.cloneId,
-        title: `Gmail: ${msg.subject || "(no subject)"}`,
-        content:
-          `Email message\n` +
-          `Subject: ${msg.subject}\n` +
-          `From: ${msg.from}\n` +
-          `To: ${msg.to}\n` +
-          `Date: ${msg.date}\n` +
-          `Labels: ${msg.labels.join(", ")}\n\n` +
-          `${msg.body}`,
-        doc_type: "email",
-      }))
-    )
-    .select("id, title, content");
+  const memoryRows: Array<{
+    clone_id: string;
+    type: string;
+    source: string;
+    content: string;
+    confidence: number;
+    metadata: Record<string, unknown>;
+    occurred_at: string;
+  }> = [];
 
-  if (documentInsert.error || !documentInsert.data) {
-    throw new Error(
-      `Failed to save Gmail documents: ${documentInsert.error?.message ?? "unknown error"}`
-    );
+  let chunksCreated = 0;
+  for (const msg of messages) {
+    const docTitle = `Gmail: ${msg.subject || "(no subject)"}`;
+    const docContent =
+      `Email message\n` +
+      `Subject: ${msg.subject}\n` +
+      `From: ${msg.from}\n` +
+      `To: ${msg.to}\n` +
+      `Date: ${msg.date}\n` +
+      `Labels: ${msg.labels.join(", ")}\n\n` +
+      `${msg.body}`;
+    const occurredAt = msg.date || new Date().toISOString();
+
+    memoryRows.push({
+      clone_id: opts.cloneId,
+      type: "document",
+      source: "email",
+      content: docContent,
+      confidence: 0.9,
+      metadata: {
+        title: docTitle,
+        doc_type: "email",
+        gmail_message_id: msg.message_id,
+        gmail_thread_id: msg.thread_id,
+      },
+      occurred_at: occurredAt,
+    });
+
+    if (docContent.trim()) {
+      const chunks = chunkText(docContent, { chunkSize: 700, overlap: 100 });
+      for (const chunk of chunks) {
+        memoryRows.push({
+          clone_id: opts.cloneId,
+          type: "chunk",
+          source: "email",
+          content: chunk.content,
+          confidence: 0.8,
+          metadata: {
+            ...chunk.metadata,
+            source_type: "email_message",
+            gmail_message_id: msg.message_id,
+            gmail_thread_id: msg.thread_id,
+            gmail_subject: msg.subject,
+            gmail_from: msg.from,
+            document_title: docTitle,
+          },
+          occurred_at: occurredAt,
+        });
+        chunksCreated++;
+      }
+    }
   }
 
-  const documents = documentInsert.data as {
-    id: string;
-    title: string;
-    content: string | null;
-  }[];
-
-  // Chunk documents
-  const chunkRows: {
-    document_id: string;
-    clone_id: string;
-    content: string;
-    metadata: Record<string, unknown>;
-  }[] = [];
-
-  documents.forEach((document, index) => {
-    const rawContent = document.content ?? "";
-    if (!rawContent.trim()) return;
-    const sourceMsg = messages[index];
-    const chunks = chunkText(rawContent, { chunkSize: 700, overlap: 100 });
-    chunks.forEach((chunk) => {
-      chunkRows.push({
-        document_id: document.id,
-        clone_id: opts.cloneId,
-        content: chunk.content,
-        metadata: {
-          ...chunk.metadata,
-          source: "gmail",
-          source_type: "email_message",
-          gmail_message_id: sourceMsg?.message_id ?? null,
-          gmail_thread_id: sourceMsg?.thread_id ?? null,
-          gmail_subject: sourceMsg?.subject ?? null,
-          gmail_from: sourceMsg?.from ?? null,
-          gmail_date: sourceMsg?.date ?? null,
-          document_title: document.title,
-        },
-      });
-    });
-  });
-
-  if (chunkRows.length > 0) {
-    const chunkInsert = await supabase.from("chunks").insert(chunkRows);
-    if (chunkInsert.error) {
-      throw new Error(
-        `Failed to save Gmail chunks: ${chunkInsert.error.message}`
-      );
+  if (memoryRows.length > 0) {
+    const { error } = await supabase.from("memories").insert(memoryRows);
+    if (error) {
+      throw new Error(`Failed to save Gmail memories: ${error.message}`);
     }
   }
 
   return {
     messages_fetched: messages.length,
-    documents_created: documents.length,
-    chunks_created: chunkRows.length,
+    documents_created: messages.length,
+    chunks_created: chunksCreated,
   };
 }

@@ -50,23 +50,24 @@ export async function GET(request: NextRequest) {
     const typeFilter = url.searchParams.get("type") || "all";
 
     let dbQuery = supabase
-      .from("documents")
-      .select("id, title, content, doc_type, file_url, created_at")
+      .from("memories")
+      .select("id, content, metadata, source, created_at")
+      .eq("type", "document")
       .order("created_at", { ascending: false })
       .limit(100);
 
-    // Filter by doc_type if a specific memory type is requested
+    // Filter by doc_type (stored in metadata) if a specific memory type is requested
     if (typeFilter === "episodic") {
-      dbQuery = dbQuery.in("doc_type", ["email", "slack_message", "meeting_notes"]);
+      dbQuery = dbQuery.in("source", ["email", "slack"]);
     } else if (typeFilter === "semantic") {
-      dbQuery = dbQuery.in("doc_type", ["google_drive_file", "notion_page", "document"]);
+      dbQuery = dbQuery.in("source", ["gdrive", "notion", "github", "manual"]);
     } else if (typeFilter !== "all") {
-      dbQuery = dbQuery.eq("doc_type", typeFilter);
+      dbQuery = dbQuery.eq("metadata->>doc_type", typeFilter);
     }
 
     // Text search
     if (query) {
-      dbQuery = dbQuery.or(`title.ilike.%${query}%,content.ilike.%${query}%`);
+      dbQuery = dbQuery.or(`content.ilike.%${query}%,metadata->>title.ilike.%${query}%`);
     }
 
     const { data, error } = await dbQuery;
@@ -76,18 +77,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Map to MemoryItem shape for the frontend
-    const items = (data ?? []).map((doc) => ({
-      id: doc.id,
-      type: DOC_TYPE_TO_MEMORY_TYPE[doc.doc_type] || "semantic",
-      title: doc.title.replace(/^(Gmail|Google Drive|Slack|Notion):\s*/i, ""),
-      content: doc.content ?? "",
-      timestamp: doc.created_at,
-      tags: extractTags(doc),
-      team: DOC_TYPE_TO_TEAM[doc.doc_type] || "Other",
-      citations: doc.file_url
-        ? [{ source: DOC_TYPE_TO_TEAM[doc.doc_type] || "Source", snippet: doc.file_url, date: new Date(doc.created_at).toLocaleDateString() }]
-        : [],
-    }));
+    const items = (data ?? []).map((row) => {
+      const meta = (row.metadata || {}) as Record<string, unknown>;
+      const docType = (meta.doc_type as string) || row.source;
+      const title = (meta.title as string) || "Untitled";
+      const fileUrl = meta.file_url as string | undefined;
+      return {
+        id: row.id,
+        type: DOC_TYPE_TO_MEMORY_TYPE[docType] || "semantic",
+        title: title.replace(/^(Gmail|Google Drive|Slack|Notion):\s*/i, ""),
+        content: row.content ?? "",
+        timestamp: row.created_at,
+        tags: extractTags({ doc_type: docType, title, content: row.content }),
+        team: DOC_TYPE_TO_TEAM[docType] || "Other",
+        citations: fileUrl
+          ? [{ source: DOC_TYPE_TO_TEAM[docType] || "Source", snippet: fileUrl, date: new Date(row.created_at).toLocaleDateString() }]
+          : [],
+      };
+    });
 
     return NextResponse.json({ items, total: items.length });
   } catch (err) {
