@@ -23,7 +23,7 @@ export default function EmployeePage() {
   }, [activeView]);
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-[#0a0a0c]">
       <EmployeeSidebar
         activeView={activeView}
         onViewChange={setActiveView}

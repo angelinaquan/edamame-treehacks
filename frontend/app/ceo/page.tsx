@@ -23,7 +23,7 @@ export default function CeoPage() {
   }, [activeView]);
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-[#0a0a0c]">
       <CeoSidebar
         activeView={activeView}
         onViewChange={setActiveView}

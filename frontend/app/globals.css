@@ -1,19 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #1a1a1a;
-  --muted: #737373;
-  --border: #e5e5e5;
-  --surface: #fafafa;
-  --accent: #6366f1;
-  --accent-light: #eef2ff;
+  --background: #0a0a0c;
+  --foreground: #ededed;
+  --muted: #71717a;
+  --border: #1e1e22;
+  --surface: #131316;
+  --surface-raised: #19191d;
+  --accent: #c4b5a0;
+  --accent-hover: #d4c5b0;
   --support: #10b981;
-  --support-light: #ecfdf5;
+  --support-light: #10b98120;
   --neutral-stance: #f59e0b;
-  --neutral-stance-light: #fffbeb;
+  --neutral-stance-light: #f59e0b20;
   --oppose: #ef4444;
-  --oppose-light: #fef2f2;
+  --oppose-light: #ef444420;
 }
 
 @theme inline {
@@ -91,7 +92,7 @@ body {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f5f5f5 25%, #e5e5e5 50%, #f5f5f5 75%);
+  background: linear-gradient(90deg, #1a1a1e 25%, #222226 50%, #1a1a1e 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
@@ -118,12 +119,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #d4d4d4;
+  background-color: #2a2a2e;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #a3a3a3;
+  background-color: #3f3f46;
 }
 
 /* ---- Waveform (voice) ---- */
@@ -134,21 +135,16 @@ body {
   100% { height: 8px; }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #ededed;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background-color: #3f3f46;
-  }
-}
-
 /* ---- Prose ---- */
 
 .prose ul,
 .prose ol {
   margin-top: 0.25em;
   margin-bottom: 0.25em;
+}
+
+/* ---- Selection ---- */
+
+::selection {
+  background-color: rgba(196, 181, 160, 0.25);
 }

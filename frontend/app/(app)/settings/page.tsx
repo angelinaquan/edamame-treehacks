@@ -269,21 +269,21 @@ function SettingsContent() {
   const googleFeedback = syncFeedback.google_drive;
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-[#0a0a0c]">
       {/* Slim sidebar nav */}
-      <aside className="flex w-[240px] flex-shrink-0 flex-col border-r border-neutral-200 bg-neutral-50/70">
+      <aside className="flex w-[240px] flex-shrink-0 flex-col border-r border-[#1e1e22] bg-[#111114]">
         <div className="flex items-center gap-2 px-5 py-5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#c4b5a0] text-[#0a0a0c]">
             <Sparkles size={15} />
           </div>
-          <span className="text-[15px] font-semibold tracking-tight text-neutral-900">OrgPulse</span>
+          <span className="text-[15px] font-semibold tracking-tight text-[#ededed]">OrgPulse</span>
         </div>
         <nav className="flex-1 px-3">
           <a
             href="/"
-            className="mb-1 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-800"
+            className="mb-1 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] text-[#a1a1aa] transition-colors hover:bg-[#19191d] hover:text-[#d4d4d8]"
           >
-            <ArrowLeft size={16} className="text-neutral-400" />
+            <ArrowLeft size={16} className="text-[#52525b]" />
             Back to OrgPulse
           </a>
         </nav>
@@ -294,10 +294,10 @@ function SettingsContent() {
         <div className="mx-auto max-w-3xl px-8 py-10">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-[22px] font-semibold tracking-tight text-neutral-900">
+            <h1 className="text-[22px] font-semibold tracking-tight text-[#ededed]">
               Integrations
             </h1>
-            <p className="mt-1 text-[13.5px] text-neutral-500">
+            <p className="mt-1 text-[13.5px] text-[#71717a]">
               Connect data sources to sync into organizational memory for RAG.
             </p>
           </div>
@@ -307,10 +307,10 @@ function SettingsContent() {
             <div
               className={`mb-6 flex items-center gap-2.5 rounded-xl border px-4 py-3 text-[13px] ${
                 message.type === "success"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  ? "border-[#10b98130] bg-[#10b98110] text-[#34d399]"
                   : message.type === "error"
-                  ? "border-red-200 bg-red-50 text-red-700"
-                  : "border-neutral-200 bg-neutral-50 text-neutral-700"
+                  ? "border-[#ef444430] bg-[#ef444410] text-[#f87171]"
+                  : "border-[#1e1e22] bg-[#131316] text-[#a1a1aa]"
               }`}
             >
               {message.type === "success" ? <Check size={14} /> : <AlertCircle size={14} />}
@@ -325,20 +325,20 @@ function SettingsContent() {
           )}
 
           {/* ---- Google Account Card ---- */}
-          <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-6">
+          <div className="mb-6 rounded-xl border border-[#1e1e22] bg-[#131316] p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <GoogleLogo size={22} />
                 <div>
-                  <h2 className="text-[14px] font-semibold text-neutral-900">Google Account</h2>
-                  <p className="text-[12.5px] text-neutral-500">Google Drive & Gmail</p>
+                  <h2 className="text-[14px] font-semibold text-[#ededed]">Google Account</h2>
+                  <p className="text-[12.5px] text-[#71717a]">Google Drive & Gmail</p>
                 </div>
               </div>
               <span
                 className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
                   isGoogleOAuth
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-neutral-100 text-neutral-500"
+                    ? "bg-[#10b98120] text-[#34d399]"
+                    : "bg-[#1e1e22] text-[#71717a]"
                 }`}
               >
                 {isGoogleOAuth ? "Connected" : "Not connected"}
@@ -347,7 +347,7 @@ function SettingsContent() {
 
             {isGoogleOAuth ? (
               <>
-                <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/50 px-3 py-2.5 text-[13px] text-emerald-700">
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#10b98130] bg-[#10b98110] px-3 py-2.5 text-[13px] text-[#34d399]">
                   <Check size={14} />
                   Signed in as <strong>{googleEmail || "unknown"}</strong>
                 </div>
@@ -356,8 +356,8 @@ function SettingsContent() {
                   <div
                     className={`mb-4 rounded-lg border px-3 py-2.5 text-[12px] ${
                       googleFeedback.success
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-red-200 bg-red-50 text-red-700"
+                        ? "border-[#10b98130] bg-[#10b98110] text-[#34d399]"
+                        : "border-[#ef444430] bg-[#ef444410] text-[#f87171]"
                     }`}
                   >
                     {googleFeedback.message}
@@ -365,7 +365,7 @@ function SettingsContent() {
                 )}
 
                 {googleStatus?.updated_at && (
-                  <p className="mb-4 text-[11.5px] text-neutral-400">
+                  <p className="mb-4 text-[11.5px] text-[#52525b]">
                     Last synced: {new Date(googleStatus.updated_at).toLocaleString()}
                   </p>
                 )}
@@ -374,7 +374,7 @@ function SettingsContent() {
                   <button
                     onClick={() => handleSyncNow("google_drive", "/api/google-drive/sync")}
                     disabled={isGoogleSyncing}
-                    className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3.5 py-2 text-[13px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-lg border border-[#1e1e22] bg-[#19191d] px-3.5 py-2 text-[13px] font-medium text-[#d4d4d8] transition-colors hover:bg-[#222226] disabled:opacity-50"
                   >
                     <HardDrive size={14} className={isGoogleSyncing ? "animate-spin" : ""} />
                     {isGoogleSyncing ? "Syncing..." : "Sync Drive"}
@@ -382,14 +382,14 @@ function SettingsContent() {
                   <button
                     onClick={() => handleSyncNow("google_drive", "/api/gmail/sync")}
                     disabled={isGoogleSyncing}
-                    className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3.5 py-2 text-[13px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-lg border border-[#1e1e22] bg-[#19191d] px-3.5 py-2 text-[13px] font-medium text-[#d4d4d8] transition-colors hover:bg-[#222226] disabled:opacity-50"
                   >
                     <Mail size={14} className={isGoogleSyncing ? "animate-spin" : ""} />
                     {isGoogleSyncing ? "Syncing..." : "Sync Gmail"}
                   </button>
                   <button
                     onClick={handleDisconnectGoogle}
-                    className="flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                    className="flex items-center gap-2 rounded-lg border border-[#ef444430] px-3.5 py-2 text-[13px] font-medium text-[#f87171] transition-colors hover:bg-[#ef444410]"
                   >
                     <LogOut size={14} />
                     Disconnect
@@ -398,13 +398,13 @@ function SettingsContent() {
               </>
             ) : (
               <>
-                <p className="mb-4 text-[13px] leading-relaxed text-neutral-500">
+                <p className="mb-4 text-[13px] leading-relaxed text-[#71717a]">
                   Connect your Google account to sync Drive files and Gmail messages into organizational memory.
                   Requires OAuth credentials configured on the server.
                 </p>
                 <a
                   href="/api/auth/google"
-                  className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-neutral-800"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#c4b5a0] px-4 py-2.5 text-[13px] font-medium text-[#0a0a0c] transition-colors hover:bg-[#d4c5b0]"
                 >
                   <LogIn size={14} />
                   Connect Google Account
@@ -415,8 +415,8 @@ function SettingsContent() {
 
           {/* ---- Other Integrations ---- */}
           <div className="mb-4">
-            <h2 className="text-[14px] font-semibold text-neutral-900">Other Integrations</h2>
-            <p className="mt-0.5 text-[12.5px] text-neutral-500">
+            <h2 className="text-[14px] font-semibold text-[#ededed]">Other Integrations</h2>
+            <p className="mt-0.5 text-[12.5px] text-[#71717a]">
               Add API keys to connect additional data sources.
             </p>
           </div>
@@ -434,21 +434,21 @@ function SettingsContent() {
               return (
                 <div
                   key={provider}
-                  className="rounded-xl border border-neutral-200 bg-white p-5"
+                  className="rounded-xl border border-[#1e1e22] bg-[#131316] p-5"
                 >
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-neutral-400">{meta.icon}</span>
+                      <span className="text-[#52525b]">{meta.icon}</span>
                       <div>
-                        <h3 className="text-[13.5px] font-semibold text-neutral-900">{meta.label}</h3>
-                        <p className="text-[11.5px] text-neutral-500">{meta.description}</p>
+                        <h3 className="text-[13.5px] font-semibold text-[#ededed]">{meta.label}</h3>
+                        <p className="text-[11.5px] text-[#71717a]">{meta.description}</p>
                       </div>
                     </div>
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
                         status?.has_config
-                          ? "bg-emerald-50 text-emerald-600"
-                          : "bg-neutral-100 text-neutral-500"
+                          ? "bg-[#10b98120] text-[#34d399]"
+                          : "bg-[#1e1e22] text-[#71717a]"
                       }`}
                     >
                       {status?.has_config ? "Connected" : "Not configured"}
@@ -459,7 +459,7 @@ function SettingsContent() {
                     <div className="mb-3 space-y-2">
                       {fields.map((field) => (
                         <div key={field.key}>
-                          <label className="mb-1 block text-[11.5px] font-medium text-neutral-500">
+                          <label className="mb-1 block text-[11.5px] font-medium text-[#71717a]">
                             {field.label}
                           </label>
                           <input
@@ -467,7 +467,7 @@ function SettingsContent() {
                             value={formState[provider][field.key] || ""}
                             placeholder={field.placeholder || ""}
                             onChange={(e) => handleInputChange(provider, field.key, e.target.value)}
-                            className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-[13px] text-neutral-800 placeholder:text-neutral-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                            className="w-full rounded-lg border border-[#1e1e22] bg-[#19191d] px-3 py-2 text-[13px] text-[#ededed] placeholder:text-[#52525b] focus:border-[#2a2a2e] focus:bg-[#1e1e22] focus:outline-none focus:ring-1 focus:ring-[#2a2a2e]"
                           />
                         </div>
                       ))}
@@ -478,8 +478,8 @@ function SettingsContent() {
                     <div
                       className={`mb-3 rounded-lg border px-3 py-2 text-[12px] ${
                         feedback.success
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                          : "border-red-200 bg-red-50 text-red-700"
+                          ? "border-[#10b98130] bg-[#10b98110] text-[#34d399]"
+                          : "border-[#ef444430] bg-[#ef444410] text-[#f87171]"
                       }`}
                     >
                       {feedback.message}
@@ -487,7 +487,7 @@ function SettingsContent() {
                   )}
 
                   {status?.updated_at && (
-                    <p className="mb-3 text-[11.5px] text-neutral-400">
+                    <p className="mb-3 text-[11.5px] text-[#52525b]">
                       Last updated: {new Date(status.updated_at).toLocaleString()}
                     </p>
                   )}
@@ -497,7 +497,7 @@ function SettingsContent() {
                       <button
                         onClick={() => handleSave(provider)}
                         disabled={isSaving || isSyncing}
-                        className="flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+                        className="flex items-center gap-2 rounded-lg bg-[#c4b5a0] px-4 py-2 text-[13px] font-medium text-[#0a0a0c] transition-colors hover:bg-[#d4c5b0] disabled:opacity-50"
                       >
                         {isSaving ? "Saving..." : `Save`}
                       </button>
@@ -506,7 +506,7 @@ function SettingsContent() {
                       <button
                         onClick={() => handleSyncNow(provider)}
                         disabled={isSaving || isSyncing}
-                        className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3.5 py-2 text-[13px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                        className="flex items-center gap-2 rounded-lg border border-[#1e1e22] bg-[#19191d] px-3.5 py-2 text-[13px] font-medium text-[#d4d4d8] transition-colors hover:bg-[#222226] disabled:opacity-50"
                       >
                         <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
                         {isSyncing ? "Syncing..." : "Sync Now"}
@@ -527,8 +527,8 @@ export default function SettingsPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-screen items-center justify-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+        <div className="flex h-screen items-center justify-center bg-[#0a0a0c]">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#c4b5a0] border-t-transparent" />
         </div>
       }
     >

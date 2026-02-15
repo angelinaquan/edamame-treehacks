@@ -33,17 +33,17 @@ function nextMsgId() {
 }
 
 const AVATAR_COLORS = [
-  "bg-indigo-100 text-indigo-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-  "bg-violet-100 text-violet-700",
-  "bg-sky-100 text-sky-700",
-  "bg-orange-100 text-orange-700",
-  "bg-teal-100 text-teal-700",
-  "bg-pink-100 text-pink-700",
-  "bg-lime-100 text-lime-700",
-  "bg-cyan-100 text-cyan-700",
+  "bg-[#1e1e22] text-[#818cf8]",
+  "bg-[#1e1e22] text-[#34d399]",
+  "bg-[#1e1e22] text-[#fbbf24]",
+  "bg-[#1e1e22] text-[#fb7185]",
+  "bg-[#1e1e22] text-[#a78bfa]",
+  "bg-[#1e1e22] text-[#38bdf8]",
+  "bg-[#1e1e22] text-[#fb923c]",
+  "bg-[#1e1e22] text-[#2dd4bf]",
+  "bg-[#1e1e22] text-[#f472b6]",
+  "bg-[#1e1e22] text-[#a3e635]",
+  "bg-[#1e1e22] text-[#22d3ee]",
 ];
 
 function getAvatarColor(index: number) {
@@ -70,8 +70,8 @@ function EmployeeListItem({
       onClick={onClick}
       className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
         active
-          ? "bg-indigo-50/70 border-r-2 border-indigo-500"
-          : "hover:bg-neutral-50"
+          ? "bg-[#19191d] border-r-2 border-[#c4b5a0]"
+          : "hover:bg-[#131316]"
       }`}
     >
       <div
@@ -83,16 +83,16 @@ function EmployeeListItem({
         <div className="flex items-center justify-between">
           <span
             className={`truncate text-[13px] font-medium ${
-              active ? "text-indigo-900" : "text-neutral-800"
+              active ? "text-[#ededed]" : "text-[#d4d4d8]"
             }`}
           >
             {profile.employee.name}
           </span>
           {hasMessages && (
-            <MessageSquare size={12} className="flex-shrink-0 text-neutral-300" />
+            <MessageSquare size={12} className="flex-shrink-0 text-[#3f3f46]" />
           )}
         </div>
-        <p className="truncate text-[11.5px] text-neutral-500">
+        <p className="truncate text-[11.5px] text-[#71717a]">
           {profile.employee.role} · {profile.employee.team}
         </p>
       </div>
@@ -110,11 +110,11 @@ function SuggestedQuestion({
   return (
     <button
       onClick={onClick}
-      className="group flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-left text-[12.5px] text-neutral-600 transition-all hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-sm"
+      className="group flex items-center gap-2 rounded-lg border border-[#1e1e22] bg-[#131316] px-3 py-2.5 text-left text-[12.5px] text-[#a1a1aa] transition-all hover:border-[#2a2a2e] hover:bg-[#19191d] hover:text-[#d4d4d8]"
     >
       <ArrowRight
         size={12}
-        className="flex-shrink-0 text-neutral-300 transition-colors group-hover:text-indigo-500"
+        className="flex-shrink-0 text-[#3f3f46] transition-colors group-hover:text-[#c4b5a0]"
       />
       <span className="line-clamp-2">{question}</span>
     </button>
@@ -141,7 +141,7 @@ function ChatBubble({
       <div
         className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
           isUser
-            ? "bg-neutral-900 text-white"
+            ? "bg-[#c4b5a0] text-[#0a0a0c]"
             : getAvatarColor(colorIndex)
         }`}
       >
@@ -153,8 +153,8 @@ function ChatBubble({
         <div
           className={`inline-block rounded-2xl px-4 py-3 text-[13px] leading-relaxed ${
             isUser
-              ? "rounded-tr-md bg-neutral-900 text-white"
-              : "rounded-tl-md bg-white text-neutral-700 shadow-sm border border-neutral-100"
+              ? "rounded-tr-md bg-[#c4b5a0] text-[#0a0a0c]"
+              : "rounded-tl-md bg-[#19191d] text-[#d4d4d8] border border-[#1e1e22]"
           }`}
         >
           <div className="whitespace-pre-line">{message.content}</div>
@@ -166,15 +166,15 @@ function ChatBubble({
             {message.citations.map((c, i) => (
               <div
                 key={i}
-                className="inline-flex items-start gap-1.5 rounded-lg bg-neutral-50 border border-neutral-200 px-2.5 py-1.5 text-left"
+                className="inline-flex items-start gap-1.5 rounded-lg bg-[#131316] border border-[#1e1e22] px-2.5 py-1.5 text-left"
               >
-                <Quote size={10} className="mt-0.5 flex-shrink-0 text-neutral-400" />
+                <Quote size={10} className="mt-0.5 flex-shrink-0 text-[#52525b]" />
                 <div>
-                  <span className="text-[10px] font-medium text-neutral-500">
+                  <span className="text-[10px] font-medium text-[#71717a]">
                     {c.source}
                   </span>
-                  <span className="text-[10px] text-neutral-400"> · {c.date}</span>
-                  <p className="mt-0.5 text-[11px] italic text-neutral-500 line-clamp-2">
+                  <span className="text-[10px] text-[#52525b]"> · {c.date}</span>
+                  <p className="mt-0.5 text-[11px] italic text-[#71717a] line-clamp-2">
                     &ldquo;{c.snippet}&rdquo;
                   </p>
                 </div>
@@ -201,11 +201,11 @@ function TypingIndicator({
       >
         {employee.initials}
       </div>
-      <div className="rounded-2xl rounded-tl-md border border-neutral-100 bg-white px-4 py-3 shadow-sm">
+      <div className="rounded-2xl rounded-tl-md border border-[#1e1e22] bg-[#19191d] px-4 py-3">
         <div className="flex items-center gap-1">
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:0ms]" />
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:150ms]" />
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:300ms]" />
+          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#52525b] [animation-delay:0ms]" />
+          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#52525b] [animation-delay:150ms]" />
+          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#52525b] [animation-delay:300ms]" />
         </div>
       </div>
     </div>
@@ -378,29 +378,29 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
   return (
     <div className="flex h-full">
       {/* ---- Left: Clone list ---- */}
-      <div className="flex w-[280px] flex-shrink-0 flex-col border-r border-neutral-200 bg-white">
+      <div className="flex w-[280px] flex-shrink-0 flex-col border-r border-[#1e1e22] bg-[#0e0e11]">
         {/* Header */}
-        <div className="border-b border-neutral-200 px-4 py-4">
-          <h2 className="text-[15px] font-semibold text-neutral-900">
+        <div className="border-b border-[#1e1e22] px-4 py-4">
+          <h2 className="text-[15px] font-semibold text-[#ededed]">
             Agent Clones
           </h2>
-          <p className="mt-0.5 text-[12px] text-neutral-500">
+          <p className="mt-0.5 text-[12px] text-[#71717a]">
             Chat with individual digital twins
           </p>
         </div>
 
         {/* Search */}
-        <div className="border-b border-neutral-200 px-3 py-2.5">
+        <div className="border-b border-[#1e1e22] px-3 py-2.5">
           <div className="relative">
             <Search
               size={14}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#52525b]"
             />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search people…"
-              className="w-full rounded-md border border-neutral-200 bg-neutral-50 py-1.5 pl-8 pr-3 text-[12.5px] text-neutral-700 placeholder:text-neutral-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              placeholder="Search people\u2026"
+              className="w-full rounded-md border border-[#1e1e22] bg-[#131316] py-1.5 pl-8 pr-3 text-[12.5px] text-[#ededed] placeholder:text-[#52525b] focus:border-[#2a2a2e] focus:outline-none focus:ring-1 focus:ring-[#2a2a2e]"
             />
           </div>
         </div>
@@ -409,15 +409,15 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
         <div className="flex-1 overflow-y-auto">
           {groupedProfiles.map((group) => (
             <div key={group.team}>
-              <div className="sticky top-0 z-10 border-b border-neutral-100 bg-neutral-50/90 px-4 py-1.5 backdrop-blur-sm">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+              <div className="sticky top-0 z-10 border-b border-[#1e1e22] bg-[#111114]/90 px-4 py-1.5 backdrop-blur-sm">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#52525b]">
                   {group.team}
                 </span>
-                <span className="ml-1.5 text-[10px] font-medium text-neutral-300">
+                <span className="ml-1.5 text-[10px] font-medium text-[#3f3f46]">
                   {group.members.length}
                 </span>
               </div>
-              <div className="divide-y divide-neutral-100">
+              <div className="divide-y divide-[#1e1e22]">
                 {group.members.map((profile) => (
                   <EmployeeListItem
                     key={profile.employee.id}
@@ -437,11 +437,11 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
       </div>
 
       {/* ---- Right: Chat area ---- */}
-      <div className="flex flex-1 flex-col bg-neutral-50/50">
+      <div className="flex flex-1 flex-col bg-[#0a0a0c]">
         {selectedProfile ? (
           <>
             {/* Chat header */}
-            <div className="flex items-center justify-between border-b border-neutral-200 bg-white px-5 py-3">
+            <div className="flex items-center justify-between border-b border-[#1e1e22] bg-[#0e0e11] px-5 py-3">
               <div className="flex items-center gap-3">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-full text-[13px] font-semibold ${getAvatarColor(
@@ -452,15 +452,15 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-[14px] font-semibold text-neutral-900">
+                    <h3 className="text-[14px] font-semibold text-[#ededed]">
                       {selectedProfile.employee.name}
                     </h3>
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                    <span className="flex items-center gap-1 rounded-full bg-[#10b98120] px-2 py-0.5 text-[10px] font-medium text-[#10b981]">
                       <Bot size={10} />
                       AI Clone
                     </span>
                   </div>
-                  <p className="text-[12px] text-neutral-500">
+                  <p className="text-[12px] text-[#71717a]">
                     {selectedProfile.employee.role} ·{" "}
                     {selectedProfile.employee.team} ·{" "}
                     {selectedProfile.employee.tenure}
@@ -471,7 +471,7 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
                 {selectedProfile.expertise.slice(0, 3).map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-md bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-500"
+                    className="rounded-md bg-[#1e1e22] px-2 py-0.5 text-[10px] font-medium text-[#71717a]"
                   >
                     {tag}
                   </span>
@@ -484,7 +484,7 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
               {messages.length === 0 && !isStreaming ? (
                 /* Empty state with personality + suggested questions */
                 <div className="mx-auto max-w-lg">
-                  <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 text-center">
+                  <div className="mb-6 rounded-xl border border-[#1e1e22] bg-[#131316] p-5 text-center">
                     <div
                       className={`mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl ${getAvatarColor(
                         profileIndex(selectedProfile.employee.id)
@@ -494,15 +494,15 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
                         {selectedProfile.employee.initials}
                       </span>
                     </div>
-                    <h3 className="mb-1 text-[15px] font-semibold text-neutral-800">
+                    <h3 className="mb-1 text-[15px] font-semibold text-[#ededed]">
                       {selectedProfile.employee.name}&apos;s Digital Twin
                     </h3>
-                    <p className="text-[12.5px] leading-relaxed text-neutral-500">
+                    <p className="text-[12.5px] leading-relaxed text-[#71717a]">
                       {selectedProfile.personality}
                     </p>
                   </div>
 
-                  <p className="mb-3 text-center text-[12px] font-medium text-neutral-400">
+                  <p className="mb-3 text-center text-[12px] font-medium text-[#52525b]">
                     Suggested questions
                   </p>
                   <div className="grid grid-cols-2 gap-2">
@@ -538,10 +538,10 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
                         {selectedProfile.employee.initials}
                       </div>
                       <div className="max-w-[75%]">
-                        <div className="inline-block rounded-2xl rounded-tl-md border border-neutral-100 bg-white px-4 py-3 text-[13px] leading-relaxed text-neutral-700 shadow-sm">
+                        <div className="inline-block rounded-2xl rounded-tl-md border border-[#1e1e22] bg-[#19191d] px-4 py-3 text-[13px] leading-relaxed text-[#d4d4d8]">
                           <div className="whitespace-pre-line">
                             {streamingContent}
-                            <span className="inline-block h-4 w-0.5 animate-pulse bg-neutral-400 align-text-bottom" />
+                            <span className="inline-block h-4 w-0.5 animate-pulse bg-[#52525b] align-text-bottom" />
                           </div>
                         </div>
                         {/* Streaming citations */}
@@ -550,21 +550,21 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
                             {streamingCitations.map((c, i) => (
                               <div
                                 key={i}
-                                className="inline-flex items-start gap-1.5 rounded-lg bg-neutral-50 border border-neutral-200 px-2.5 py-1.5 text-left"
+                                className="inline-flex items-start gap-1.5 rounded-lg bg-[#131316] border border-[#1e1e22] px-2.5 py-1.5 text-left"
                               >
                                 <Quote
                                   size={10}
-                                  className="mt-0.5 flex-shrink-0 text-neutral-400"
+                                  className="mt-0.5 flex-shrink-0 text-[#52525b]"
                                 />
                                 <div>
-                                  <span className="text-[10px] font-medium text-neutral-500">
+                                  <span className="text-[10px] font-medium text-[#71717a]">
                                     {c.source}
                                   </span>
-                                  <span className="text-[10px] text-neutral-400">
+                                  <span className="text-[10px] text-[#52525b]">
                                     {" "}
                                     · {c.date}
                                   </span>
-                                  <p className="mt-0.5 text-[11px] italic text-neutral-500 line-clamp-2">
+                                  <p className="mt-0.5 text-[11px] italic text-[#71717a] line-clamp-2">
                                     &ldquo;{c.snippet}&rdquo;
                                   </p>
                                 </div>
@@ -590,7 +590,7 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
             </div>
 
             {/* Input area */}
-            <div className="border-t border-neutral-200 bg-white px-5 py-3">
+            <div className="border-t border-[#1e1e22] bg-[#0e0e11] px-5 py-3">
               <form onSubmit={handleSubmit} className="flex items-end gap-3">
                 <textarea
                   ref={inputRef}
@@ -602,14 +602,14 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
                       handleSubmit();
                     }
                   }}
-                  placeholder={`Ask ${selectedProfile.employee.name.split(" ")[0]} a question…`}
+                  placeholder={`Ask ${selectedProfile.employee.name.split(" ")[0]} a question\u2026`}
                   rows={1}
-                  className="max-h-32 min-h-[40px] flex-1 resize-none rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-[13px] text-neutral-800 placeholder:text-neutral-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  className="max-h-32 min-h-[40px] flex-1 resize-none rounded-xl border border-[#1e1e22] bg-[#131316] px-4 py-2.5 text-[13px] text-[#ededed] placeholder:text-[#52525b] focus:border-[#2a2a2e] focus:bg-[#19191d] focus:outline-none focus:ring-1 focus:ring-[#2a2a2e]"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim() || isStreaming}
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-neutral-900 text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#c4b5a0] text-[#0a0a0c] transition-colors hover:bg-[#d4c5b0] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isStreaming ? (
                     <Loader2 size={16} className="animate-spin" />
@@ -623,13 +623,13 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
         ) : (
           /* No clone selected */
           <div className="flex h-full flex-col items-center justify-center text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-100">
-              <Sparkles size={24} className="text-neutral-400" />
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1e1e22]">
+              <Sparkles size={24} className="text-[#52525b]" />
             </div>
-            <h3 className="mb-1 text-[15px] font-medium text-neutral-600">
+            <h3 className="mb-1 text-[15px] font-medium text-[#a1a1aa]">
               Select an agent clone
             </h3>
-            <p className="max-w-xs text-[13px] text-neutral-400">
+            <p className="max-w-xs text-[13px] text-[#52525b]">
               Choose an employee from the list to chat with their AI digital
               twin. Each clone has unique expertise and perspective.
             </p>

@@ -20,16 +20,16 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-16 flex-col items-center border-r border-zinc-200 bg-white py-4 dark:border-zinc-800 dark:bg-zinc-950 lg:w-56 lg:items-stretch lg:px-3">
+    <aside className="flex h-full w-16 flex-col items-center border-r border-[#1e1e22] bg-[#111114] py-4 lg:w-56 lg:items-stretch lg:px-3">
       {/* Logo */}
       <Link
         href="/"
         className="mb-6 flex items-center justify-center gap-2 lg:justify-start lg:px-3"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 text-white">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#c4b5a0] text-[#0a0a0c]">
           <Sparkles size={16} />
         </div>
-        <span className="hidden text-sm font-bold text-zinc-900 dark:text-zinc-100 lg:block">
+        <span className="hidden text-sm font-bold text-[#ededed] lg:block">
           Digital Twin
         </span>
       </Link>
@@ -46,8 +46,8 @@ export function Sidebar() {
               href={href}
               className={`flex items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:justify-start ${
                 isActive
-                  ? "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
-                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                  ? "bg-[#1e1e22] text-[#ededed]"
+                  : "text-[#a1a1aa] hover:bg-[#19191d] hover:text-[#d4d4d8]"
               }`}
             >
               <Icon size={18} />
@@ -60,7 +60,7 @@ export function Sidebar() {
       {/* Settings */}
       <Link
         href="/settings"
-        className="flex items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 lg:justify-start"
+        className="flex items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[#a1a1aa] transition-colors hover:bg-[#19191d] hover:text-[#d4d4d8] lg:justify-start"
       >
         <Settings size={18} />
         <span className="hidden lg:block">Settings</span>
