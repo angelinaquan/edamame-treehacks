@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getActiveCloneId } from "@/lib/credentials";
 import { syncGitHubContextToSupabase } from "@/lib/github";
 import { syncNotionContextToSupabase } from "@/lib/notion";
-import { syncGoogleDriveContextToSupabase } from "@/lib/google";
+import { syncGoogleDriveContextToSupabase, syncGmailToSupabase } from "@/lib/google";
 import { syncSlackContextToSupabase } from "@/lib/slack";
 
 type IntegrationProvider =
@@ -151,11 +151,22 @@ export async function POST(request: NextRequest) {
         });
       }
     } else if (body.provider === "google_drive") {
-      if (body.config.service_account_json || body.config.api_key) {
-        syncResult = await syncGoogleDriveContextToSupabase({
+      const isOAuth = body.config.auth_type === "oauth";
+      if (isOAuth || body.config.service_account_json || body.config.api_key) {
+        const driveResult = await syncGoogleDriveContextToSupabase({
           cloneId,
           fileLimit: 20,
         });
+        // If OAuth, also sync Gmail
+        if (isOAuth) {
+          const gmailResult = await syncGmailToSupabase({
+            cloneId,
+            maxResults: 50,
+          });
+          syncResult = { drive: driveResult, gmail: gmailResult };
+        } else {
+          syncResult = driveResult;
+        }
       }
     }
   } catch (error) {

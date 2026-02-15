@@ -1,7 +1,8 @@
-import { google, drive_v3 } from "googleapis";
+import { google, drive_v3, gmail_v1 } from "googleapis";
 import { chunkText } from "@/lib/chunker";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getGoogleDriveCredentials } from "@/lib/credentials";
+import { getGoogleDriveCredentials, getGoogleOAuthTokens } from "@/lib/credentials";
+import type { OAuth2Client } from "google-auth-library";
 
 export interface GoogleDriveFileSnapshot {
   file_id: string;
@@ -27,8 +28,31 @@ export interface GoogleDriveSyncResult {
   chunks_created: number;
 }
 
-async function createGoogleAuth(): Promise<InstanceType<typeof google.auth.GoogleAuth>> {
-  const scopes = ["https://www.googleapis.com/auth/drive.readonly"];
+/**
+ * Creates a Google auth client.
+ * Tries OAuth2 user tokens first (from integration_credentials).
+ * Falls back to service account if no OAuth tokens are stored.
+ */
+async function createGoogleAuth(): Promise<OAuth2Client | InstanceType<typeof google.auth.GoogleAuth>> {
+  // Try OAuth tokens first
+  const oauthTokens = await getGoogleOAuthTokens();
+  if (oauthTokens) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+    oauth2Client.setCredentials({
+      access_token: oauthTokens.access_token,
+      refresh_token: oauthTokens.refresh_token,
+      expiry_date: oauthTokens.expiry_date,
+    });
+    return oauth2Client;
+  }
+
+  // Fallback to service account
+  const scopes = [
+    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/gmail.readonly",
+  ];
   const creds = await getGoogleDriveCredentials();
 
   if (creds.serviceAccountJson) {
@@ -46,10 +70,12 @@ async function createGoogleAuth(): Promise<InstanceType<typeof google.auth.Googl
 
 async function createDriveClient(): Promise<drive_v3.Drive> {
   const auth = await createGoogleAuth();
-  return google.drive({
-    version: "v3",
-    auth,
-  });
+  return google.drive({ version: "v3", auth: auth as OAuth2Client });
+}
+
+async function createGmailClient(): Promise<gmail_v1.Gmail> {
+  const auth = await createGoogleAuth();
+  return google.gmail({ version: "v1", auth: auth as OAuth2Client });
 }
 
 function isTextLikeMimeType(mimeType: string): boolean {
@@ -292,6 +318,210 @@ export async function syncGoogleDriveContextToSupabase(opts: {
   return {
     snapshot_id: snapshotId,
     files_scanned: context.files_scanned,
+    documents_created: documents.length,
+    chunks_created: chunkRows.length,
+  };
+}
+
+// ============================================
+// GMAIL INTEGRATION
+// ============================================
+
+export interface GmailMessageSnapshot {
+  message_id: string;
+  thread_id: string;
+  subject: string;
+  from: string;
+  to: string;
+  date: string;
+  snippet: string;
+  body: string;
+  labels: string[];
+}
+
+export interface GmailSyncResult {
+  messages_fetched: number;
+  documents_created: number;
+  chunks_created: number;
+}
+
+function decodeBase64Url(data: string): string {
+  const base64 = data.replace(/-/g, "+").replace(/_/g, "/");
+  return Buffer.from(base64, "base64").toString("utf-8");
+}
+
+function getHeader(
+  headers: gmail_v1.Schema$MessagePartHeader[] | undefined,
+  name: string
+): string {
+  return headers?.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
+}
+
+function extractPlainTextBody(payload: gmail_v1.Schema$MessagePart | undefined): string {
+  if (!payload) return "";
+
+  // Simple text/plain at top level
+  if (payload.mimeType === "text/plain" && payload.body?.data) {
+    return decodeBase64Url(payload.body.data);
+  }
+
+  // Multipart — recurse into parts
+  if (payload.parts) {
+    for (const part of payload.parts) {
+      if (part.mimeType === "text/plain" && part.body?.data) {
+        return decodeBase64Url(part.body.data);
+      }
+    }
+    // Try nested multipart
+    for (const part of payload.parts) {
+      const nested = extractPlainTextBody(part);
+      if (nested) return nested;
+    }
+  }
+
+  return "";
+}
+
+export async function listGmailMessages(opts?: {
+  query?: string;
+  maxResults?: number;
+}): Promise<GmailMessageSnapshot[]> {
+  const gmail = await createGmailClient();
+  const maxResults = Math.min(Math.max(opts?.maxResults ?? 50, 1), 200);
+
+  const listRes = await gmail.users.messages.list({
+    userId: "me",
+    q: opts?.query || "",
+    maxResults,
+  });
+
+  const messageIds = listRes.data.messages ?? [];
+  if (messageIds.length === 0) return [];
+
+  const snapshots: GmailMessageSnapshot[] = [];
+
+  for (const msg of messageIds) {
+    if (!msg.id) continue;
+    try {
+      const full = await gmail.users.messages.get({
+        userId: "me",
+        id: msg.id,
+        format: "full",
+      });
+
+      const headers = full.data.payload?.headers;
+      const body = extractPlainTextBody(full.data.payload);
+
+      snapshots.push({
+        message_id: full.data.id ?? "",
+        thread_id: full.data.threadId ?? "",
+        subject: getHeader(headers, "Subject"),
+        from: getHeader(headers, "From"),
+        to: getHeader(headers, "To"),
+        date: getHeader(headers, "Date"),
+        snippet: full.data.snippet ?? "",
+        body: body.slice(0, 5000), // cap body at 5k chars
+        labels: full.data.labelIds ?? [],
+      });
+    } catch {
+      // skip messages we can't read
+    }
+  }
+
+  return snapshots;
+}
+
+export async function syncGmailToSupabase(opts: {
+  cloneId: string;
+  query?: string;
+  maxResults?: number;
+}): Promise<GmailSyncResult> {
+  const messages = await listGmailMessages({
+    query: opts.query,
+    maxResults: opts.maxResults,
+  });
+  const supabase = createServerSupabaseClient();
+
+  if (messages.length === 0) {
+    return { messages_fetched: 0, documents_created: 0, chunks_created: 0 };
+  }
+
+  // Insert documents
+  const documentInsert = await supabase
+    .from("documents")
+    .insert(
+      messages.map((msg) => ({
+        clone_id: opts.cloneId,
+        title: `Gmail: ${msg.subject || "(no subject)"}`,
+        content:
+          `Email message\n` +
+          `Subject: ${msg.subject}\n` +
+          `From: ${msg.from}\n` +
+          `To: ${msg.to}\n` +
+          `Date: ${msg.date}\n` +
+          `Labels: ${msg.labels.join(", ")}\n\n` +
+          `${msg.body}`,
+        doc_type: "email",
+      }))
+    )
+    .select("id, title, content");
+
+  if (documentInsert.error || !documentInsert.data) {
+    throw new Error(
+      `Failed to save Gmail documents: ${documentInsert.error?.message ?? "unknown error"}`
+    );
+  }
+
+  const documents = documentInsert.data as {
+    id: string;
+    title: string;
+    content: string | null;
+  }[];
+
+  // Chunk documents
+  const chunkRows: {
+    document_id: string;
+    clone_id: string;
+    content: string;
+    metadata: Record<string, unknown>;
+  }[] = [];
+
+  documents.forEach((document, index) => {
+    const rawContent = document.content ?? "";
+    if (!rawContent.trim()) return;
+    const sourceMsg = messages[index];
+    const chunks = chunkText(rawContent, { chunkSize: 700, overlap: 100 });
+    chunks.forEach((chunk) => {
+      chunkRows.push({
+        document_id: document.id,
+        clone_id: opts.cloneId,
+        content: chunk.content,
+        metadata: {
+          ...chunk.metadata,
+          source: "gmail",
+          source_type: "email_message",
+          gmail_message_id: sourceMsg?.message_id ?? null,
+          gmail_thread_id: sourceMsg?.thread_id ?? null,
+          gmail_subject: sourceMsg?.subject ?? null,
+          gmail_from: sourceMsg?.from ?? null,
+          gmail_date: sourceMsg?.date ?? null,
+          document_title: document.title,
+        },
+      });
+    });
+  });
+
+  if (chunkRows.length > 0) {
+    const chunkInsert = await supabase.from("chunks").insert(chunkRows);
+    if (chunkInsert.error) {
+      throw new Error(
+        `Failed to save Gmail chunks: ${chunkInsert.error.message}`
+      );
+    }
+  }
+
+  return {
+    messages_fetched: messages.length,
     documents_created: documents.length,
     chunks_created: chunkRows.length,
   };
