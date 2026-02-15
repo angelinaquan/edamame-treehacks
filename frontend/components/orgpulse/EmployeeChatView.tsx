@@ -16,6 +16,9 @@ import {
   MicOff,
   MessageSquare,
   Volume2,
+  Brain,
+  Zap,
+  ChevronRight,
 } from "lucide-react";
 import { fetchCloneProfiles, streamCloneChat } from "@/lib/orgpulse/api";
 import type {
@@ -23,6 +26,140 @@ import type {
   Citation,
   CloneProfile,
 } from "@/lib/orgpulse/types";
+
+// ---- Memory learning types ----
+
+interface MemoryEntry {
+  id: string;
+  fact: string;
+  source: string;
+  timestamp: string;
+  status: "extracting" | "stored";
+}
+
+// Simple fact extraction from a user message
+function extractFactFromMessage(content: string, cloneName: string): string | null {
+  const lower = content.toLowerCase();
+  // Skip very short messages or greetings
+  if (content.length < 20) return null;
+  if (lower.match(/^(hi|hello|hey|thanks|ok|yes|no|sure)\b/)) return null;
+
+  // Extract opinion/preference/fact patterns
+  if (lower.includes("think") || lower.includes("opinion") || lower.includes("feel")) {
+    return `${cloneName} expressed a viewpoint: "${content.slice(0, 120)}${content.length > 120 ? "…" : ""}"`;
+  }
+  if (lower.includes("working on") || lower.includes("project") || lower.includes("building")) {
+    return `${cloneName} mentioned current work: "${content.slice(0, 120)}${content.length > 120 ? "…" : ""}"`;
+  }
+  if (lower.includes("concern") || lower.includes("worry") || lower.includes("risk") || lower.includes("problem")) {
+    return `${cloneName} flagged a concern: "${content.slice(0, 120)}${content.length > 120 ? "…" : ""}"`;
+  }
+  if (lower.includes("decision") || lower.includes("decided") || lower.includes("plan")) {
+    return `${cloneName} shared a decision/plan: "${content.slice(0, 120)}${content.length > 120 ? "…" : ""}"`;
+  }
+  // Generic extraction for longer messages
+  if (content.length > 40) {
+    return `New context from ${cloneName}: "${content.slice(0, 100)}${content.length > 100 ? "…" : ""}"`;
+  }
+  return null;
+}
+
+// ---- Memory Panel sub-component ----
+
+function MemoryPanel({
+  entries,
+  cloneName,
+  isOpen,
+  onToggle,
+}: {
+  entries: MemoryEntry[];
+  cloneName: string;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div
+      className={`flex flex-col border-l border-neutral-200 bg-neutral-50/80 transition-all ${
+        isOpen ? "w-[300px]" : "w-[42px]"
+      }`}
+    >
+      {/* Toggle header */}
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-2 border-b border-neutral-200 px-3 py-3 text-left transition-colors hover:bg-neutral-100"
+      >
+        <Brain size={16} className="flex-shrink-0 text-violet-500" />
+        {isOpen && (
+          <div className="flex-1 min-w-0">
+            <span className="text-[12px] font-semibold text-neutral-800">
+              Continual Learning
+            </span>
+            <span className="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-600">
+              {entries.length}
+            </span>
+          </div>
+        )}
+        <ChevronRight
+          size={14}
+          className={`flex-shrink-0 text-neutral-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="flex-1 overflow-y-auto">
+          {entries.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <Brain size={20} className="mx-auto mb-2 text-neutral-300" />
+              <p className="text-[11.5px] text-neutral-400">
+                Memories will appear here as {cloneName.split(" ")[0]} learns from conversations.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-neutral-100">
+              {entries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="animate-fade-in-up px-3 py-3"
+                >
+                  <div className="mb-1 flex items-center gap-1.5">
+                    {entry.status === "extracting" ? (
+                      <Loader2 size={10} className="animate-spin text-amber-500" />
+                    ) : (
+                      <Zap size={10} className="text-violet-500" />
+                    )}
+                    <span
+                      className={`text-[10px] font-medium ${
+                        entry.status === "extracting"
+                          ? "text-amber-600"
+                          : "text-violet-600"
+                      }`}
+                    >
+                      {entry.status === "extracting"
+                        ? "Extracting…"
+                        : "Stored in mem0"}
+                    </span>
+                    <span className="ml-auto text-[9px] text-neutral-400">
+                      {new Date(entry.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-[11.5px] leading-relaxed text-neutral-600">
+                    {entry.fact}
+                  </p>
+                  <p className="mt-1 text-[10px] text-neutral-400">
+                    Source: {entry.source}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ---- Helpers ----
 let _msgId = 0;
@@ -102,6 +239,8 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
   const [mode, setMode] = useState<"text" | "voice">("text");
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [memoryEntries, setMemoryEntries] = useState<MemoryEntry[]>([]);
+  const [memoryPanelOpen, setMemoryPanelOpen] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -188,6 +327,32 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
           citations: cites.length > 0 ? cites : undefined,
         };
         setMessages((prev) => [...prev, assistantMsg]);
+
+        // --- Extract memory from the user's message ---
+        const userName = profile?.employee.name?.replace(" [Twin Clone]", "") || "User";
+        const userFact = extractFactFromMessage(question, userName);
+        if (userFact) {
+          const entryId = `mem_${Date.now()}`;
+          // Show "extracting" state
+          setMemoryEntries((prev) => [
+            {
+              id: entryId,
+              fact: userFact,
+              source: "Conversation",
+              timestamp: new Date().toISOString(),
+              status: "extracting",
+            },
+            ...prev,
+          ]);
+          // Transition to "stored" after a short delay
+          setTimeout(() => {
+            setMemoryEntries((prev) =>
+              prev.map((e) =>
+                e.id === entryId ? { ...e, status: "stored" } : e
+              )
+            );
+          }, 1500);
+        }
       } catch {
         // aborted
       }
@@ -274,10 +439,13 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
   }
 
   const cloneName = profile?.employee.name || "Your Twin";
+  const displayName = cloneName.replace(" [Twin Clone]", "");
   const initials = profile?.employee.initials || "??";
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full">
+      {/* Chat column */}
+      <div className="flex flex-1 flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-neutral-200 bg-white px-6 py-3">
         <div className="flex items-center gap-3">
@@ -471,6 +639,15 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
           </div>
         )}
       </div>
+      </div>{/* end chat column */}
+
+      {/* Memory learning panel */}
+      <MemoryPanel
+        entries={memoryEntries}
+        cloneName={displayName}
+        isOpen={memoryPanelOpen}
+        onToggle={() => setMemoryPanelOpen((o) => !o)}
+      />
     </div>
   );
 }
