@@ -123,10 +123,14 @@ function normalizePersonality(value: unknown): ClonePersonality {
   };
 }
 
+function stripCloneSuffix(name: string): string {
+  return name.replace(/\s*\(Clone\)$/i, "");
+}
+
 function mapClone(row: SupabaseCloneRow): Clone {
   return {
     id: row.id,
-    name: row.name,
+    name: stripCloneSuffix(row.name),
     avatar_url: row.avatar_url || undefined,
     personality: normalizePersonality(row.personality),
     expertise_tags: row.expertise_tags || [],

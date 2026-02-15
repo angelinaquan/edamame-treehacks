@@ -43,16 +43,18 @@ export async function GET() {
       const bio = (personality?.bio as string) || "";
       const expertiseAreas = (personality?.expertise_areas as string[]) || [];
 
+      const displayName = clone.name.replace(/\s*\(Clone\)$/i, "");
+
       return {
         employee: {
           id: clone.id,
-          name: clone.name,
+          name: displayName,
           role: clone.owner_role || expertiseAreas[0] || "Team Member",
           team: clone.owner_department || expertiseAreas[0] || "General",
           tenure: "",
-          initials: getInitials(clone.name),
+          initials: getInitials(displayName),
         },
-        personality: tone || bio || `AI digital twin of ${clone.name}.`,
+        personality: tone || bio || `AI digital twin of ${displayName}.`,
         expertise: clone.expertise_tags ?? [],
         suggestedQuestions: [
           "What are you currently working on?",
