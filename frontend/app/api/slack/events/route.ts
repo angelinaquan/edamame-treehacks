@@ -133,8 +133,25 @@ async function processSlackMessage(event: SlackMessageEvent): Promise<void> {
 
   // Build the memory content
   const memoryContent = `[Slack #${channelName}] ${senderName}: ${text}`;
-  const cloneId = await getActiveCloneId();
   const supabase = createServerSupabaseClient();
+
+  // Match sender to a clone by name (per-person learning)
+  let cloneId: string;
+  const senderLower = senderName.toLowerCase();
+  const { data: matchedClone } = await supabase
+    .from("clones")
+    .select("id, name, owner_name")
+    .or(`name.ilike.%${senderLower}%,owner_name.ilike.%${senderLower}%`)
+    .limit(1)
+    .maybeSingle();
+
+  if (matchedClone) {
+    cloneId = matchedClone.id as string;
+    console.log(`[slack-events] Matched sender "${senderName}" to clone "${matchedClone.name}" (${cloneId})`);
+  } else {
+    cloneId = await getActiveCloneId();
+    console.log(`[slack-events] No clone match for "${senderName}", using default clone ${cloneId}`);
+  }
 
   // Generate embedding for the message
   let embedding: number[] | null = null;

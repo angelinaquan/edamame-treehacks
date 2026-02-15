@@ -298,13 +298,21 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, streamingContent]);
 
-  // Poll for real memory entries from the backend (all sources: chat, Slack, etc.)
+  // Poll for real memory entries from the backend (per-clone, all sources)
   const lastPollRef = useRef<string>(new Date().toISOString());
   const knownIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    // Initial load: fetch recent entries
-    fetch("/api/memory/recent?limit=20")
+    if (!profile) return; // wait for profile to load
+    const cid = profile.employee.id;
+
+    // Reset state when clone changes
+    knownIdsRef.current.clear();
+    setMemoryEntries([]);
+    lastPollRef.current = new Date().toISOString();
+
+    // Initial load: fetch recent entries for this clone
+    fetch(`/api/memory/recent?limit=20&cloneId=${cid}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.entries && data.entries.length > 0) {
@@ -328,11 +336,11 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
       })
       .catch(() => {});
 
-    // Poll every 4 seconds for new entries
+    // Poll every 4 seconds for new entries for this clone
     const interval = setInterval(async () => {
       try {
         const res = await fetch(
-          `/api/memory/recent?limit=10&since=${encodeURIComponent(lastPollRef.current)}`
+          `/api/memory/recent?limit=10&cloneId=${cid}&since=${encodeURIComponent(lastPollRef.current)}`
         );
         const data = await res.json();
         if (data.entries && data.entries.length > 0) {
@@ -370,7 +378,7 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [profile]);
 
   // TTS: speak the assistant's response aloud
   const speakText = useCallback(async (text: string) => {

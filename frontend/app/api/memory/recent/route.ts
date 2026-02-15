@@ -3,9 +3,10 @@ import { createServerSupabaseClient } from "@/lib/core/supabase/server";
 import { getActiveCloneId } from "@/lib/integrations/credentials";
 
 /**
- * GET /api/memory/recent?limit=20&since=<ISO_timestamp>
+ * GET /api/memory/recent?cloneId=<uuid>&limit=20&since=<ISO_timestamp>
  *
- * Returns the most recent fact memories for the active clone.
+ * Returns the most recent fact memories for a specific clone.
+ * If cloneId is not provided, falls back to the active clone.
  * Used by the Continual Learning panel to poll for new entries
  * from any source (chat, Slack webhook, integration sync, etc.).
  */
@@ -14,8 +15,9 @@ export async function GET(request: NextRequest) {
     const url = request.nextUrl;
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "20", 10), 50);
     const since = url.searchParams.get("since") || null;
+    const cloneIdParam = url.searchParams.get("cloneId")?.trim() || null;
 
-    const cloneId = await getActiveCloneId();
+    const cloneId = cloneIdParam || (await getActiveCloneId());
     const supabase = createServerSupabaseClient();
 
     let query = supabase
