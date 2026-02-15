@@ -39,15 +39,22 @@ export interface SyntheticGenerationResult {
   counts: Record<SyntheticSource, number>;
 }
 
+// Hackathon window: 2/13/2026 9:30 PM PT – 2/14/2026 9:00 PM PT
+// PT (PST) = UTC-8
+const HACKATHON_START = "2026-02-14T05:30:00.000Z"; // 2/13 9:30 PM PT
+const HACKATHON_END = "2026-02-15T05:00:00.000Z"; // 2/14 9:00 PM PT
+
 function resolveDateRange(options?: SyntheticGenerationOptions["dateRange"]): {
   startIso: string;
   endIso: string;
 } {
-  const end = options?.end ? new Date(options.end) : new Date();
   const start = options?.start
-    ? new Date(options.start)
-    : new Date(end.getTime() - 1000 * 60 * 60 * 24 * 30);
-  return { startIso: start.toISOString(), endIso: end.toISOString() };
+    ? new Date(options.start).toISOString()
+    : HACKATHON_START;
+  const end = options?.end
+    ? new Date(options.end).toISOString()
+    : HACKATHON_END;
+  return { startIso: start, endIso: end };
 }
 
 export function generateSyntheticResources(
