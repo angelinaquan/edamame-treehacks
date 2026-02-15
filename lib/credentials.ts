@@ -89,6 +89,22 @@ export async function getGoogleDriveCredentials(): Promise<GoogleDriveCredential
   return { keyFile };
 }
 
+export async function getSlackBotToken(): Promise<string> {
+  const config = await getIntegrationConfig("slack");
+  if (
+    config?.bot_token &&
+    typeof config.bot_token === "string" &&
+    config.bot_token.trim()
+  ) {
+    return config.bot_token.trim();
+  }
+  const envToken = process.env.SLACK_BOT_TOKEN;
+  if (envToken) return envToken;
+  throw new Error(
+    "No Slack bot token found. Add it in Settings or set SLACK_BOT_TOKEN in .env.local."
+  );
+}
+
 export async function getActiveCloneId(): Promise<string> {
   const supabase = createServerSupabaseClient();
   const result = await supabase

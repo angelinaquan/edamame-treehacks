@@ -5,9 +5,10 @@ import { KeyRound, ShieldCheck, RefreshCw } from "lucide-react";
 
 type Provider = "slack" | "github" | "notion" | "google_drive" | "jira" | "email";
 
-const SYNCABLE_PROVIDERS: Provider[] = ["github", "notion", "google_drive"];
+const SYNCABLE_PROVIDERS: Provider[] = ["slack", "github", "notion", "google_drive"];
 
 const syncRoutes: Partial<Record<Provider, string>> = {
+  slack: "/api/slack/sync",
   github: "/api/github/sync",
   notion: "/api/notion/sync",
   google_drive: "/api/google-drive/sync",
@@ -75,6 +76,12 @@ const providers = Object.keys(providerLabels) as Provider[];
 
 function formatSyncResult(result: Record<string, unknown>): string {
   const parts: string[] = [];
+  if (typeof result.channels_scanned === "number") {
+    parts.push(`${result.channels_scanned} channels`);
+  }
+  if (typeof result.messages_fetched === "number") {
+    parts.push(`${result.messages_fetched} messages`);
+  }
   if (typeof result.repositories_scanned === "number") {
     parts.push(`${result.repositories_scanned} repos`);
   }

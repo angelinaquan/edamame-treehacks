@@ -132,6 +132,14 @@ CREATE TABLE google_drive_context_snapshots (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Slack context snapshots (raw structured payload for replay/debugging)
+CREATE TABLE slack_context_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  clone_id UUID REFERENCES clones(id) ON DELETE CASCADE,
+  payload JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Integration credentials (for SDK/API setup in-app)
 CREATE TABLE integration_credentials (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -153,4 +161,5 @@ CREATE INDEX idx_github_snapshots_clone_id ON github_context_snapshots(clone_id)
 CREATE INDEX idx_github_snapshots_username ON github_context_snapshots(github_username);
 CREATE INDEX idx_notion_snapshots_clone_id ON notion_context_snapshots(clone_id);
 CREATE INDEX idx_google_drive_snapshots_clone_id ON google_drive_context_snapshots(clone_id);
+CREATE INDEX idx_slack_snapshots_clone_id ON slack_context_snapshots(clone_id);
 CREATE INDEX idx_integration_credentials_provider ON integration_credentials(provider);

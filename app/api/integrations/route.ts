@@ -4,6 +4,7 @@ import { getActiveCloneId } from "@/lib/credentials";
 import { syncGitHubContextToSupabase } from "@/lib/github";
 import { syncNotionContextToSupabase } from "@/lib/notion";
 import { syncGoogleDriveContextToSupabase } from "@/lib/google";
+import { syncSlackContextToSupabase } from "@/lib/slack";
 
 type IntegrationProvider =
   | "slack"
@@ -121,7 +122,15 @@ export async function POST(request: NextRequest) {
   try {
     const cloneId = await getActiveCloneId();
 
-    if (body.provider === "github") {
+    if (body.provider === "slack") {
+      if (body.config.bot_token) {
+        syncResult = await syncSlackContextToSupabase({
+          cloneId,
+          channelLimit: 20,
+          messagesPerChannel: 200,
+        });
+      }
+    } else if (body.provider === "github") {
       const username =
         typeof body.config.username === "string"
           ? body.config.username.trim()
