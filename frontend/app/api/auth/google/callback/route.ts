@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     // Store tokens in integration_credentials
     const supabase = createServerSupabaseClient();
     const { error: dbError } = await supabase
-      .from("integrations")
+      .from("integration_credentials")
       .upsert(
         {
           provider: "google_drive",

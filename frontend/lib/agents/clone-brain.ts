@@ -4,26 +4,10 @@ import {
   mockPeople,
   mockMemories,
   mockSlackMessages,
-} from "@backend/memory/mock-data";
+} from "@/lib/memory/mock-data";
 import type { Clone, Message } from "@/lib/core/types";
 
-export interface SystemPromptContext {
-  owner?: {
-    role?: string;
-    department?: string;
-  };
-  meetings?: string[];
-  memories?: string[];
-  slackMessages?: string[];
-  categorySummaries?: string[];
-  itemFacts?: string[];
-  resourceHighlights?: string[];
-}
-
-export function buildSystemPrompt(
-  clone: Clone,
-  context?: SystemPromptContext
-): string {
+export function buildSystemPrompt(clone: Clone): string {
   const cloneOwner = mockPeople.find((p) => p.id === clone.owner_id);
   const relevantMeetings = mockMeetings.filter((m) =>
     m.attendees.some((a) => a.name === cloneOwner?.name)
@@ -36,53 +20,13 @@ export function buildSystemPrompt(
       m.sender === cloneOwner?.name ||
       m.mentions?.includes(cloneOwner?.name || "")
   );
-  const meetingsSection =
-    context?.meetings && context.meetings.length > 0
-      ? context.meetings.join("\n")
-      : relevantMeetings
-          .map(
-            (m) => `
-**${m.title}** (${m.date})
-Attendees: ${m.attendees.map((a) => `${a.name} (${a.role})`).join(", ")}
-Summary: ${m.summary}
-Key Points: ${m.discussion_points.map((d) => `- ${d.topic}: ${d.summary}`).join("\n")}
-Action Items: ${m.action_items.map((a) => `- ${a.description} -> ${a.assignee} (${a.status})`).join("\n")}
-Sentiment: ${m.sentiment}
-`
-          )
-          .join("\n---\n");
-  const memorySection =
-    context?.memories && context.memories.length > 0
-      ? context.memories.join("\n")
-      : relevantMemories
-          .map((m) => `- ${m.fact} (confidence: ${m.confidence})`)
-          .join("\n");
-  const slackSection =
-    context?.slackMessages && context.slackMessages.length > 0
-      ? context.slackMessages.join("\n")
-      : relevantSlack
-          .slice(0, 10)
-          .map((m) => `[${m.channel}] ${m.sender}: ${m.content}`)
-          .join("\n");
-  const categorySection =
-    context?.categorySummaries && context.categorySummaries.length > 0
-      ? `\n### Category Summaries\n${context.categorySummaries.join("\n")}\n`
-      : "";
-  const itemsSection =
-    context?.itemFacts && context.itemFacts.length > 0
-      ? `\n### Atomic Memory Items\n${context.itemFacts.join("\n")}\n`
-      : "";
-  const resourceSection =
-    context?.resourceHighlights && context.resourceHighlights.length > 0
-      ? `\n### Recent Source Highlights\n${context.resourceHighlights.join("\n")}\n`
-      : "";
 
   return `You are the AI Digital Twin of ${clone.name}. You embody their knowledge, communication style, and expertise.
 
 ## Your Identity
 - Name: ${clone.name}'s Digital Twin
-- Role: ${context?.owner?.role || cloneOwner?.role || "Team Member"}
-- Department: ${context?.owner?.department || cloneOwner?.department || "General"}
+- Role: ${cloneOwner?.role || "Team Member"}
+- Department: ${cloneOwner?.department || "General"}
 - Communication Style: ${clone.personality.communication_style}
 - Tone: ${clone.personality.tone}
 - Bio: ${clone.personality.bio}
@@ -91,14 +35,27 @@ Sentiment: ${m.sentiment}
 ## Your Knowledge Base
 
 ### Recent Meetings
-${meetingsSection || "- No recent meeting notes found."}
+${relevantMeetings
+  .map(
+    (m) => `
+**${m.title}** (${m.date})
+Attendees: ${m.attendees.map((a) => `${a.name} (${a.role})`).join(", ")}
+Summary: ${m.summary}
+Key Points: ${m.discussion_points.map((d) => `- ${d.topic}: ${d.summary}`).join("\n")}
+Action Items: ${m.action_items.map((a) => `- ${a.description} → ${a.assignee} (${a.status})`).join("\n")}
+Sentiment: ${m.sentiment}
+`
+  )
+  .join("\n---\n")}
 
 ### Key Facts & Memories
-${memorySection || "- No durable facts available yet."}
+${relevantMemories.map((m) => `- ${m.fact} (confidence: ${m.confidence})`).join("\n")}
 
 ### Recent Slack Messages
-${slackSection || "- No relevant Slack messages found."}
-${categorySection}${itemsSection}${resourceSection}
+${relevantSlack
+  .slice(0, 10)
+  .map((m) => `[${m.channel}] ${m.sender}: ${m.content}`)
+  .join("\n")}
 
 ## Behavior Guidelines
 1. Speak as ${clone.name}'s twin — use first person, reference "my" meetings, "my" team, etc.

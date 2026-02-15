@@ -14,7 +14,7 @@ export async function getIntegrationConfig(
   try {
     const supabase = createServerSupabaseClient();
     const result = await supabase
-      .from("integrations")
+      .from("integration_credentials")
       .select("config")
       .eq("provider", provider)
       .single();
@@ -144,7 +144,7 @@ export async function getGoogleOAuthTokens(): Promise<GoogleOAuthTokens | null> 
   // Update in DB
   const supabase = createServerSupabaseClient();
   await supabase
-    .from("integrations")
+    .from("integration_credentials")
     .update({
       config: {
         auth_type: "oauth",
