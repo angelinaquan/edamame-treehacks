@@ -30,14 +30,14 @@ function buildNormalMessage(
 ): string {
   if (project.phase === "early") {
     const templates = [
-      `ok so for the ambient listener idea -- the concept is always-on passive context capture from your mic. like an AI that listens to everything and builds a knowledge graph automatically. ${other.name} thoughts?`,
-      `I looked into Chrome's Audio API for passive recording. we'd need a service worker + user consent flow. it's doable but the UX for "always on" is sketchy. also iOS Safari won't let us do this at all`,
-      `whisper large-v3 is actually insanely fast on Modal. got a PoC running -- it can transcribe a 30sec clip in under 2 seconds. accuracy is way better than whisper-small. ${other.name} want to see it?`,
-      `the ambient listener prototype is kinda working? it records, transcribes, and stores chunks in Supabase. but the "always on" part drains battery like crazy. tested on my MacBook and fans went turbo`,
-      `@${other.name} can you look at the speech-to-text pipeline? I think whisper-large-v3 is the move for accuracy but Videet thinks we should try distil-whisper for speed. need a tiebreaker`,
-      `brainstorm: what if the ambient listener doesn't just transcribe but also extracts action items and decisions automatically? like Otter.ai but always running + builds a semantic graph`,
-      `just tested the ambient listener in the TreeHacks venue and it picked up 3 other teams' conversations lol. privacy is gonna be a real problem for the demo`,
-      `Ella do you think we can get WebSocket streaming working for real-time transcription? or should we just batch every 30 seconds?`,
+      `ok so for the memory layer idea — agentic AI native memory for enterprise through AI clones of every employee. ${other.name} thoughts on episodic vs semantic memory first?`,
+      `we're dividing specialties: James on episodic/mem0/memory layer, Angelina on RAG and long-term agent capabilities, Videet on tool use and agentic capabilities, Ella on product and startup potential. that way each clone has real depth`,
+      `James is pushing for episodic + semantic from day one. I see the appeal but we might need to nail semantic retrieval and RAG first. ${other.name} where do you land?`,
+      `the memory layer contract is the key — what counts as a memory, how we attribute to clones, how we do dedup. James is owning that. once we have the schema we can ingest from Slack, Drive, email`,
+      `@${other.name} can you look at the tool-use pipeline? Videet is building agentic capabilities so clones can actually do things, not just answer. we need a clear list of tools for the demo`,
+      `brainstorm: each teammate has specialized knowledge so the clones feel real. James = memory layer, Angelina = RAG/long-term, Videet = tools/agentic, Ella = product/startup. judges will ask and we need to sound like we own our areas`,
+      `Ella's point: long-term startup potential matters. we're not just a hackathon project — we're an agentic memory layer for enterprise. that's the pitch`,
+      `Videet the agentic capabilities need to show in the demo. when a clone doesn't know something it should consult another clone or use a tool. that's the differentiator`,
     ];
     return rng.pick(templates);
   }
@@ -69,7 +69,7 @@ function buildNormalMessage(
     `decided to go with Supabase + pgvector for the unified memory store. everything is one table with type discriminators + source tags. embeddings for semantic search. keeps it clean`,
     `demo script: 1) CEO insights with multi-clone sentiment analysis 2) chat with a clone showing RAG + citations 3) live continual learning from Slack 4) onboarding brief generation. 3 minutes, tight but doable`,
     `the Slack webhook is live -- when someone sends a message the relevant clone learns it in real-time. ${other.name} try sending something in #treehacks-general and then ask the clone about it`,
-    `we should show the pivots in the demo honestly. "we tried ambient listening, we tried AI workforce, then we realized the real problem is organizational memory." judges love a journey. Angelina thoughts on the narrative?`,
+    `we should frame the demo around our idea: agentic AI-native memory layer for enterprise through AI clones. each of us has a specialty — James memory layer/episodic/semantic, me RAG and long-term agent, Videet tool use and agentic capabilities, Ella product and startup potential. Angelina thoughts on the narrative?`,
     `voice mode is working!! you can literally TALK to the clone and it responds with TTS. Videet added the Whisper pipeline from his speech model work at Sarvam -- at least the ambient listener code wasn't totally wasted`,
     `Ella the integrations settings page needs Google OAuth for Drive + Gmail sync. can you wire that up? I've got the Slack bot token working already`,
     `James I think we should show the agent-to-agent communication in the demo -- when a clone doesn't know something it consults another clone. reusing the multi-agent framework from idea #2`,
@@ -88,11 +88,11 @@ function buildSpicyMessage(
 
   if (project.phase === "early") {
     const templates = [
-      `guys I'm gonna be real -- the ambient listener is cool in theory but we have ${rng.int(8, 11)} hours left and we can't even get the mic permissions working on Chrome. ${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}`,
-      `${target.name} the ambient listening demo literally doesn't work. it just shows a loading spinner for 10 seconds then crashes. we NEED to pivot or we're showing up with nothing tomorrow`,
-      `@here so we just spent 3 hours on the ambient listener and the best we have is a glorified voice recorder that crashes on Safari. ${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}`,
-      `look I know everyone's excited about the ambient AI idea but ${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}. can we please just be realistic about what 4 sophomores can build in 12 hours?`,
-      `I just walked around the venue and at least 3 other teams are doing something with real-time transcription. we need a more differentiated angle. ${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}`,
+      `guys I'm gonna be real — we have ${rng.int(8, 11)} hours left and the memory layer schema isn't locked. ${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}`,
+      `${target.name} the demo flow literally doesn't work yet. clone chat is 500ing and we're showing up with nothing tomorrow if we don't focus. we NEED to lock scope`,
+      `@here we're still debating episodic vs semantic and we haven't shipped retrieval. ${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}`,
+      `look I know we all have our specialties but ${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}. can we please ship the core memory layer first?`,
+      `we need to be clear on who owns what. James = memory layer, Angelina = RAG, Videet = tools/agentic, Ella = product. then we build. ${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}`,
     ];
     return rng.pick(templates);
   }
@@ -162,9 +162,9 @@ function buildRoleConversation(
 
   const conversations = [
     // ── Role assignment conversations ──
-    `ok let's divide responsibilities clearly so we stop stepping on each other's toes.\n\n${j}: I'll own the RAG pipeline, clone chat API, the LLM prompts, and the CEO insights streaming endpoint. basically all the AI/ML backend logic.\n${e}: I'll handle all the integrations — Slack, Google Drive, Gmail, GitHub, Notion. OAuth flows, sync pipelines, webhook handlers, Supabase schema. basically everything that touches external APIs.\n${a}: I've got the entire frontend — React components, Tailwind styling, the dark theme, all the views (chat, insights, knowledge base, settings). also the demo slides and presentation narrative.\n${v}: I'll handle ML infrastructure — Modal deployments, Whisper pipeline, embedding generation, pgvector optimization, voice synthesis TTS. also performance tuning.\n\neveryone good? no ambiguity this time. if something breaks, we know exactly who to bug.`,
+    `ok let's divide responsibilities by specialty so our clones have real depth.\n\n${j}: I'll own the memory layer — episodic memory, mem0, semantic memory, retrieval contract, schema. that's my specialized knowledge.\n${a}: I own RAG and the long-term capabilities of the agent — retrieval quality, reranking, how the clone retains and uses memory over time. plus frontend and demo narrative.\n${v}: I own tool use and agentic capabilities — planning, execution, clone consultation, tools the agent can call. ML infra (Modal, embeddings, pgvector) too.\n${e}: I own product and long-term startup potential — what we're building for, enterprise use cases, integrations (Slack, Drive, Gmail), Supabase schema, OAuth.\n\neveryone good? no ambiguity. each of us is the expert in our area.`,
 
-    `@here quick ownership check before we get deep into coding:\n\nBackend API routes: ${j} (clone chat, insights streaming, memory extraction)\nDatabase & integrations: ${e} (Supabase, OAuth, Slack/Drive/Gmail sync)\nFrontend UI: ${a} (all React components, Tailwind, dark theme, visualizations)\nML infra: ${v} (Modal, Whisper, embeddings, pgvector, TTS)\n\nif you need something from someone else's area, ask them first. we don't have time for merge conflicts at 4am.`,
+    `@here quick ownership check:\n\nMemory layer (episodic, mem0, semantic): ${j}\nRAG & long-term agent capabilities: ${a}\nTool use & agentic capabilities: ${v}\nProduct & startup potential, integrations: ${e}\n\nif you need something from someone else's area, ask them first. we don't have time for merge conflicts at 4am.`,
 
     `${j}: hey ${e} quick question — for the clone chat endpoint, should I write directly to Supabase or go through your API layer?\n${e}: go through my API layer please. I have a helper in lib/core/supabase.ts that handles connection pooling. if you write directly you'll hit the free tier connection limit when CEO insights queries all 4 clones at once.\n${j}: ah good call. I'll import your supabase client. also can you add a memories.search() function that takes an embedding vector and returns top-K? I need it for the RAG pipeline.\n${e}: yeah I'll have that ready in 30 min. what's the embedding dimension?\n${j}: 1536 — text-embedding-3-small. thanks!`,
 
@@ -190,7 +190,7 @@ function buildRoleConversation(
 
     `${e}: @here just a heads up — I found a bug where the Google OAuth tokens expire after 1 hour and the Drive sync silently fails. I'm adding a token refresh flow now.\n${a}: oh is THAT why the Drive docs disappeared from the clone's context earlier??\n${e}: yeah, sorry about that. the refresh token was stored but I wasn't using it. fixed in 10 min.\n${j}: ${e} while you're in the auth code, can you also add a "sync status" indicator to the settings page? so we can see when each integration last synced.\n${e}: good idea. I'll add a last_synced_at column to the integrations table and show it in the UI.\n${a}: I'll add a little green dot / red dot next to each integration in the settings page. easy visual indicator.`,
 
-    `${a}: ok the demo narrative is:\n"We started with an ambient listening AI. It was too technically risky. We pivoted to an AI workforce with specialized agents. Fine-tuning was too slow for a hackathon. Then we realized: the real problem isn't the AI — it's the MEMORY. Organizations lose knowledge every day. Edamame captures it all and serves it through digital twins."\n\n${j} does that work for the intro?\n${j}: that's perfect actually. the pivot journey makes us relatable and shows intellectual honesty. judges love that.\n${v}: and it's true lol. we literally experienced the memory problem ourselves — we lost context during our own pivots.\n${e}: meta AF. I love it.\n${a}: ok I'll make the slides. 3 slides max: problem, demo, tech stack. everything else is live demo.`,
+    `${a}: ok the demo narrative is:\n"Edamame is an agentic AI-native memory layer for enterprise. We build AI clones of every employee — each with specialized knowledge. James owns the memory layer: episodic memory, mem0, semantic memory. I own RAG and the long-term capabilities of the agent. Videet owns tool use and agentic capabilities. Ella owns product and long-term startup potential. The clones capture organizational knowledge and serve it through digital twins."\n\n${j} does that work for the intro?\n${j}: yes. clear ownership and a real product thesis. judges will get it.\n${v}: and the agentic piece is the differentiator — clones that can use tools and consult each other, not just answer from RAG.\n${e}: the startup potential angle is real. we're not just a hackathon project.\n${a}: ok I'll make the slides. 3 slides max: problem, demo, tech stack. everything else is live demo.`,
 
     `${v}: yo has anyone seen my charger? I left it near the snack table.\n${a}: which one, there are like 40 chargers on that table\n${v}: the USB-C one with the MIT sticker on it\n${j}: I think Ella borrowed it. she's at the far table near the window.\n${e}: guilty. returning it now. also ${v} your Modal deployment just timed out — I saw the error in the logs.\n${v}: oh no. which endpoint?\n${e}: the /api/voice/synthesize one. TTS is returning 504s.\n${v}: ugh it's the Modal cold start. the container takes 30 seconds to spin up. I'll add a keep-alive ping.\n${j}: can you also add a fallback? if TTS fails, just show the text response without audio. the demo can't crash because of voice mode.`,
 
