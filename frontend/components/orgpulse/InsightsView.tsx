@@ -22,6 +22,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { streamInsightsQuery } from "@/lib/orgpulse/api";
+import { AgentNetworkView } from "./AgentNetworkView";
 import { ALL_TEAMS } from "@/lib/orgpulse/mock-data";
 import type {
   StreamStage,
@@ -516,6 +517,7 @@ export function InsightsView({ demoTrigger }: InsightsViewProps) {
     useState<EmployeeResponse | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [networkTrigger, setNetworkTrigger] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const responsesEndRef = useRef<HTMLDivElement>(null);
 
@@ -535,6 +537,7 @@ export function InsightsView({ demoTrigger }: InsightsViewProps) {
       }
 
       setIsRunning(true);
+      setNetworkTrigger((n) => n + 1);
       setResponses([]);
       setAggregation(null);
       setStage("idle");
@@ -769,6 +772,13 @@ export function InsightsView({ demoTrigger }: InsightsViewProps) {
           </div>
         ) : (
           <div className="mx-auto max-w-3xl">
+            {/* Agent Network Visualization */}
+            {(isRunning || (stage !== "idle" && stage !== "complete")) && (
+              <div className="animate-fade-in mb-6">
+                <AgentNetworkView trigger={networkTrigger} />
+              </div>
+            )}
+
             {/* Aggregation Summary */}
             {aggregation && (
               <div className="animate-fade-in mb-6 rounded-xl border border-[#1e1e22] bg-[#131316] p-5">
