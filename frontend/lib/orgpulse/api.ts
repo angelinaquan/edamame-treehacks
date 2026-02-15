@@ -50,10 +50,87 @@ function seededRandom(seed: number): () => number {
 }
 
 // ============================================
-// INSIGHTS — Streaming query (mock — needs LLM for real)
+// INSIGHTS — Streaming query (REAL API with mock fallback)
 // ============================================
 
 export async function* streamInsightsQuery(
+  query: string,
+  filters: InsightsFilters,
+  signal?: AbortSignal
+): AsyncGenerator<InsightEvent> {
+  // Try real API first
+  try {
+    const res = await fetch("/api/orgpulse/insights", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: query, filters }),
+      signal,
+    });
+
+    if (res.ok && res.body) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === "stage") {
+              yield {
+                type: "stage",
+                stage: event.stage,
+                message: event.message,
+              };
+            } else if (event.type === "plan") {
+              // Capture availableTeams from the API response if present
+              if (event.plan?.availableTeams) {
+                _cachedAvailableTeams = event.plan.availableTeams;
+              }
+              yield { type: "plan", plan: event.plan };
+            } else if (event.type === "employee_response") {
+              yield {
+                type: "employee_response",
+                response: event.response,
+              };
+            } else if (event.type === "aggregation") {
+              // Capture availableTeams from aggregation if present
+              if (event.data?.availableTeams) {
+                _cachedAvailableTeams = event.data.availableTeams;
+              }
+              yield { type: "aggregation", data: event.data };
+            } else if (event.type === "error") {
+              throw new Error(event.message);
+            }
+          } catch (parseErr) {
+            if (parseErr instanceof Error && parseErr.message) {
+              throw parseErr;
+            }
+            // skip malformed lines
+          }
+        }
+      }
+      return;
+    }
+    // Non-OK response — fall through to mock
+  } catch (err) {
+    if (signal?.aborted) return;
+    // Fall through to mock
+  }
+
+  // ---- Mock fallback ----
+  yield* streamInsightsQueryMock(query, filters, signal);
+}
+
+async function* streamInsightsQueryMock(
   query: string,
   filters: InsightsFilters,
   signal?: AbortSignal
@@ -120,6 +197,20 @@ export async function* streamInsightsQuery(
 
   await delay(300);
   yield { type: "stage", stage: "complete", message: "Analysis complete." };
+}
+
+// ============================================
+// INSIGHTS — Available teams (from real API or mock fallback)
+// ============================================
+
+let _cachedAvailableTeams: string[] | null = null;
+
+/**
+ * Returns available teams for the insights filter UI.
+ * Uses teams from the last real API response, or falls back to ALL_TEAMS from mock data.
+ */
+export function getAvailableTeams(): string[] {
+  return _cachedAvailableTeams ?? ALL_TEAMS;
 }
 
 // ============================================

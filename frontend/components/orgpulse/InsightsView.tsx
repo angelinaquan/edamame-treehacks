@@ -21,9 +21,8 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
-import { streamInsightsQuery } from "@/lib/orgpulse/api";
+import { streamInsightsQuery, getAvailableTeams } from "@/lib/orgpulse/api";
 import { AgentNetworkView } from "./AgentNetworkView";
-import { ALL_TEAMS } from "@/lib/orgpulse/mock-data";
 import type {
   StreamStage,
   QueryPlan,
@@ -677,7 +676,7 @@ export function InsightsView({ demoTrigger }: InsightsViewProps) {
                 Teams
               </label>
               <div className="flex flex-wrap gap-1.5">
-                {ALL_TEAMS.map((team) => {
+                {getAvailableTeams().map((team) => {
                   const active = filters.teams.includes(team);
                   return (
                     <button
