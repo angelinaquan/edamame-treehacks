@@ -5,6 +5,7 @@ import { Sidebar, type View } from "@/components/orgpulse/Sidebar";
 import { InsightsView } from "@/components/orgpulse/InsightsView";
 import { ClonesView } from "@/components/orgpulse/ClonesView";
 import { KnowledgeView } from "@/components/orgpulse/KnowledgeView";
+import { MeetingRecorder } from "@/components/meetings/MeetingRecorder";
 
 export default function Home() {
   const [activeView, setActiveView] = useState<View>("insights");
@@ -40,6 +41,9 @@ export default function Home() {
           <KnowledgeView demoTrigger={demoTriggerKnowledge} />
         </div>
       </main>
+      <div className="fixed bottom-4 left-4 right-4 z-50 sm:right-auto sm:w-[22rem]">
+        <MeetingRecorder cloneId="auto" />
+      </div>
     </div>
   );
 }

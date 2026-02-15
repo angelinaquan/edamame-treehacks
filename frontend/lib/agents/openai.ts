@@ -12,15 +12,22 @@ function getOpenAIClient(): OpenAI {
 
 export default getOpenAIClient;
 
-export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
+export async function transcribeAudio(audioInput: File | Buffer): Promise<string> {
   const openai = getOpenAIClient();
-  const uint8 = new Uint8Array(audioBuffer);
-  const file = new File([uint8], "audio.webm", { type: "audio/webm" });
+  const file =
+    audioInput instanceof File
+      ? audioInput
+      : new File([new Uint8Array(audioInput)], "audio.webm", {
+          type: "audio/webm",
+        });
+  // Pass the raw File directly to preserve original codec/container metadata.
+  // whisper-1 handles webm/opus, ogg, mp4, mp3, wav natively.
   const transcription = await openai.audio.transcriptions.create({
     model: "whisper-1",
     file,
+    language: "en",
   });
-  return transcription.text;
+  return transcription.text.trim();
 }
 
 export async function synthesizeSpeech(text: string): Promise<Uint8Array> {
