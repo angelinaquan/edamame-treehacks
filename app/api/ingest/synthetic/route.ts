@@ -3,7 +3,8 @@ import { chunkText } from "@/lib/chunker";
 import { extractFacts } from "@/lib/memory";
 import { generateSyntheticResources } from "@/lib/synthetic";
 import { validateSyntheticResources } from "@/lib/synthetic/validate";
-import { isSupabaseConfigured } from "@/lib/flags";
+import { getMemoryProvider, isSupabaseConfigured } from "@/lib/flags";
+import { syncResourcesToMem0 } from "@/lib/mem0";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
   DocType,
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = (await request.json()) as SyntheticIngestRequest;
+    const memoryProvider = getMemoryProvider();
     const cloneId = payload.cloneId;
     if (!cloneId) {
       return NextResponse.json(
@@ -122,6 +124,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         dry_run: true,
+        memory_provider: memoryProvider,
         seed: generated.seed,
         range: {
           start: generated.startIso,
@@ -130,6 +133,16 @@ export async function POST(request: NextRequest) {
         counts: generated.counts,
         preview: generated.resources.slice(0, 3),
       });
+    }
+
+    let mem0Sync: Awaited<ReturnType<typeof syncResourcesToMem0>> | null = null;
+    if (memoryProvider === "mem0") {
+      mem0Sync = await syncResourcesToMem0(cloneId, generated.resources);
+      if (mem0Sync.synced === 0) {
+        throw new Error(
+          `Mem0 sync failed for all resources: ${mem0Sync.errors.join(" | ")}`
+        );
+      }
     }
 
     const { data: run, error: runError } = await supabase
@@ -339,6 +352,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       run_id: run.id,
+      memory_provider: memoryProvider,
       seed: generated.seed,
       counts: {
         generated_resources: insertedResources.length,
@@ -349,6 +363,7 @@ export async function POST(request: NextRequest) {
         projected_memories: memoriesToInsert.length,
       },
       by_source: generated.counts,
+      mem0_sync: mem0Sync,
     });
   } catch (error) {
     if (runId) {

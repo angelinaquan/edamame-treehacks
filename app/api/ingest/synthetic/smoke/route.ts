@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getKnowledgeContext } from "@/lib/memory";
+import { getMemoryProvider } from "@/lib/flags";
 
 export async function POST(request: NextRequest) {
   try {
+    const memoryProvider = getMemoryProvider();
     const {
       cloneId,
       seed = "smoke-seed",
@@ -69,6 +71,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      memory_provider: memoryProvider,
       ingest: ingestResult,
       verify: {
         document_count: documentCount || 0,

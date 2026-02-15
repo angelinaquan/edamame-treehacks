@@ -45,6 +45,25 @@ NEXT_PUBLIC_SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
+Use `MEMORY_PROVIDER` to switch memory engines:
+
+```bash
+# default
+MEMORY_PROVIDER=supabase
+
+# use Mem0 for memory ingest/search
+MEMORY_PROVIDER=mem0
+MEM0_API_KEY=...
+# optional overrides:
+MEM0_BASE_URL=https://api.mem0.ai
+MEM0_AUTH_SCHEME=Token
+MEM0_ADD_PATH=/v2/memories/
+MEM0_SEARCH_PATH=/v2/memories/search/
+MEM0_FILTER_FIELD=user_id
+```
+
+When `MEMORY_PROVIDER=mem0`, synthetic ingest will sync generated resources to Mem0 and chat retrieval will query Mem0 first. Supabase document/chunk/memory projections are still written for UI compatibility.
+
 ### Generate and ingest synthetic data
 
 ```bash

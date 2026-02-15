@@ -4,12 +4,22 @@ import {
   runMonthlyRewind,
   runWeeklySummarization,
 } from "@/lib/memory";
+import { getMemoryProvider } from "@/lib/flags";
 
 type CompactionMode = "weekly" | "monthly" | "both";
 
 export async function POST(request: NextRequest) {
   try {
+    const provider = getMemoryProvider();
     if (!isSupabaseMemoryEnabled()) {
+      if (provider === "mem0") {
+        return NextResponse.json({
+          success: true,
+          provider,
+          message:
+            "Mem0 provider selected. Supabase compaction jobs are skipped because Mem0 manages memory internals.",
+        });
+      }
       return NextResponse.json(
         {
           error:
@@ -43,6 +53,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      provider,
       clone_id: cloneId,
       mode,
       weekly,

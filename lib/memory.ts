@@ -1,7 +1,13 @@
 import type { Chunk, Memory } from "./types";
 import { mockMemories, mockDocuments } from "./mock-data";
 import { createServerSupabaseClient } from "./supabase/server";
-import { isSupabaseMemoryEnabled as isSupabaseMemoryFlagEnabled } from "./flags";
+import {
+  isMem0MemoryEnabled,
+  readRuntimeEnv,
+  isSupabaseConfigured,
+  isSupabaseMemoryEnabled as isSupabaseMemoryFlagEnabled,
+} from "./flags";
+import { searchMem0KnowledgeContext } from "./mem0";
 
 export interface KnowledgeContext {
   categories: Array<{
@@ -34,6 +40,10 @@ export interface CompactionResult {
 
 export function isSupabaseMemoryEnabled(): boolean {
   return isSupabaseMemoryFlagEnabled();
+}
+
+function isSupabaseFallbackAvailable(): boolean {
+  return readRuntimeEnv("USE_SUPABASE_MEMORY") === "true" && isSupabaseConfigured();
 }
 
 function cleanTerm(term: string): string {
@@ -127,7 +137,18 @@ export async function getKnowledgeContext(
   query: string,
   topK: number = 5
 ): Promise<KnowledgeContext | null> {
-  if (!isSupabaseMemoryEnabled()) return null;
+  if (isMem0MemoryEnabled()) {
+    try {
+      const mem0Context = await searchMem0KnowledgeContext(cloneId, query, topK);
+      if (mem0Context) {
+        return mem0Context;
+      }
+    } catch (error) {
+      console.error("Mem0 retrieval failed, attempting Supabase fallback:", error);
+    }
+  }
+
+  if (!isSupabaseMemoryEnabled() && !isSupabaseFallbackAvailable()) return null;
 
   const supabase = createServerSupabaseClient();
   const terms = query

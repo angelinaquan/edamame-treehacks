@@ -1,5 +1,5 @@
 import { getCloneById, mockClones, mockDocuments, mockMemories, mockPeople } from "./mock-data";
-import { isSupabaseMemoryEnabled } from "./flags";
+import { isSupabaseConfigured } from "./flags";
 import { createServerSupabaseClient } from "./supabase/server";
 import type {
   Clone,
@@ -187,7 +187,7 @@ function toMemory(row: SupabaseMemoryRow): Memory {
 
 export async function getCloneRuntime(cloneId?: string): Promise<CloneRuntime> {
   const requestedId = cloneId || "clone_self";
-  if (!isSupabaseMemoryEnabled()) {
+  if (!isSupabaseConfigured()) {
     const clone = getCloneById(requestedId) || null;
     const owner = clone
       ? mockPeople.find((p) => p.id === clone.owner_id)
@@ -242,7 +242,7 @@ export async function getCloneRuntime(cloneId?: string): Promise<CloneRuntime> {
 }
 
 export async function listClonesForApi(): Promise<CloneApiSummary[]> {
-  if (!isSupabaseMemoryEnabled()) {
+  if (!isSupabaseConfigured()) {
     return mockClones.map((clone) => {
       const owner = mockPeople.find((p) => p.id === clone.owner_id);
       return {
@@ -299,7 +299,7 @@ export async function listClonesForApi(): Promise<CloneApiSummary[]> {
 export async function getCloneDetailForApi(
   cloneId: string
 ): Promise<CloneApiDetail | null> {
-  if (!isSupabaseMemoryEnabled()) {
+  if (!isSupabaseConfigured()) {
     return buildMockCloneDetail(cloneId);
   }
 
