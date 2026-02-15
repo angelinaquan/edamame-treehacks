@@ -16,6 +16,10 @@ import {
   MessageSquare,
   ArrowRight,
   Bot,
+  Brain,
+  Users,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import { getCloneProfiles, fetchCloneProfiles, streamCloneChat } from "@/lib/orgpulse/api";
 import type {
@@ -187,6 +191,60 @@ function ChatBubble({
   );
 }
 
+function AgentThinkingSteps({ employeeName }: { employeeName: string }) {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setStep(1), 600),
+      setTimeout(() => setStep(2), 1800),
+      setTimeout(() => setStep(3), 3500),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const steps = [
+    { label: "Searching knowledge base", icon: <Search size={12} /> },
+    { label: "Retrieving relevant memories", icon: <Brain size={12} /> },
+    { label: "Consulting coworker agents", icon: <Users size={12} /> },
+    { label: "Composing response", icon: <Sparkles size={12} /> },
+  ];
+
+  return (
+    <div className="space-y-2.5 py-1">
+      {steps.map((s, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-2.5 text-[12px]"
+          style={{
+            opacity: i <= step ? 1 : 0.3,
+            transition: "opacity 0.3s ease",
+          }}
+        >
+          {i < step ? (
+            <CheckCircle2 size={13} className="flex-shrink-0 text-[#34d399]" />
+          ) : i === step ? (
+            <Loader2 size={13} className="flex-shrink-0 animate-spin text-[#c4b5a0]" />
+          ) : (
+            <Circle size={13} className="flex-shrink-0 text-[#2a2a2e]" />
+          )}
+          <span
+            className={
+              i < step
+                ? "text-[#71717a] line-through decoration-[#3f3f46]"
+                : i === step
+                ? "text-[#a1a1aa]"
+                : "text-[#3f3f46]"
+            }
+          >
+            {s.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TypingIndicator({
   employee,
   colorIndex,
@@ -202,11 +260,7 @@ function TypingIndicator({
         {employee.initials}
       </div>
       <div className="rounded-2xl rounded-tl-md border border-[#1e1e22] bg-[#19191d] px-4 py-3">
-        <div className="flex items-center gap-1">
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#52525b] [animation-delay:0ms]" />
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#52525b] [animation-delay:150ms]" />
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#52525b] [animation-delay:300ms]" />
-        </div>
+        <AgentThinkingSteps employeeName={employee.name} />
       </div>
     </div>
   );
