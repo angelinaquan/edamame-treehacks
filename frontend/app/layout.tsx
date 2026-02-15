@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Digital Twin — AI Clone Platform",
+  title: "OrgPulse — Organizational Intelligence",
   description:
-    "AI Digital Twins for your team. Scale expertise without overwhelming experts.",
+    "Multi-agent population queries and institutional memory for modern organizations.",
 };
 
 export default function RootLayout({
