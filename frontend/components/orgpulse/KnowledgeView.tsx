@@ -22,9 +22,11 @@ import {
 } from "lucide-react";
 import {
   getOnboardingOptions,
+  fetchOnboardingOptions,
   generateOnboardingBrief,
   searchMemories,
   getOffboardingEmployees,
+  fetchOffboardingEmployees,
   generateHandoffPack,
 } from "@/lib/orgpulse/api";
 import type {
@@ -63,12 +65,17 @@ const STATUS_COLORS: Record<string, string> = {
 // ============================================
 
 function OnboardingTab({ autoTrigger }: { autoTrigger: number }) {
-  const options = getOnboardingOptions();
+  const [options, setOptions] = useState(getOnboardingOptions());
   const [selectedRole, setSelectedRole] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("");
   const [brief, setBrief] = useState<OnboardingBrief | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  // Fetch real onboarding options from Supabase on mount
+  useEffect(() => {
+    fetchOnboardingOptions().then((opts) => setOptions(opts));
+  }, []);
 
   const handleGenerate = useCallback(async () => {
     if (!selectedRole || !selectedTeam) return;
@@ -80,14 +87,15 @@ function OnboardingTab({ autoTrigger }: { autoTrigger: number }) {
   }, [selectedRole, selectedTeam]);
 
   useEffect(() => {
-    if (autoTrigger > 0) {
-      setSelectedRole("Senior Product Manager");
-      setSelectedTeam("AI Platform");
+    if (autoTrigger > 0 && options.length > 0) {
+      const firstOption = options[0];
+      setSelectedRole(firstOption.role);
+      setSelectedTeam(firstOption.team);
       setTimeout(async () => {
         setLoading(true);
         const result = await generateOnboardingBrief(
-          "Senior Product Manager",
-          "AI Platform"
+          firstOption.role,
+          firstOption.team
         );
         setBrief(result);
         setLoading(false);
@@ -649,12 +657,19 @@ function MemoryTab() {
 // ============================================
 
 function OffboardingTab({ autoTrigger }: { autoTrigger: number }) {
-  const offboardingEmployees = getOffboardingEmployees();
+  const [offboardingEmployees, setOffboardingEmployees] = useState(
+    getOffboardingEmployees()
+  );
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
   const [pack, setPack] = useState<HandoffPack | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Fetch real employees from Supabase on mount
+  useEffect(() => {
+    fetchOffboardingEmployees().then((emps) => setOffboardingEmployees(emps));
+  }, []);
 
   const handleGenerate = useCallback(async (emp: Employee) => {
     setSelectedEmployee(emp);

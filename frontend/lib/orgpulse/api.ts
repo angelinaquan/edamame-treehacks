@@ -18,6 +18,7 @@ import type {
   MemoryType,
   CloneProfile,
   Citation,
+  Employee,
 } from "./types";
 import {
   ALL_TEAMS,
@@ -122,18 +123,51 @@ export async function* streamInsightsQuery(
 }
 
 // ============================================
-// KNOWLEDGE — Onboarding (mock — would need LLM for real)
+// KNOWLEDGE — Onboarding (REAL DATA from Supabase with mock fallback)
 // ============================================
 
-export function getOnboardingOptions() {
+let _cachedOnboardingOptions: { role: string; team: string }[] | null = null;
+
+export async function fetchOnboardingOptions(): Promise<
+  { role: string; team: string }[]
+> {
+  try {
+    const res = await fetch("/api/orgpulse/onboarding");
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json();
+    if (data.options && data.options.length > 0) {
+      _cachedOnboardingOptions = data.options;
+      return data.options;
+    }
+  } catch {
+    // fall through
+  }
+  _cachedOnboardingOptions = onboardingOptions;
   return onboardingOptions;
+}
+
+export function getOnboardingOptions() {
+  return _cachedOnboardingOptions ?? onboardingOptions;
 }
 
 export async function generateOnboardingBrief(
   role: string,
   team: string
 ): Promise<OnboardingBrief> {
-  await delay(1500);
+  try {
+    const res = await fetch("/api/orgpulse/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role, team }),
+    });
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json();
+    if (data.brief) return data.brief as OnboardingBrief;
+  } catch {
+    // fall through
+  }
+  // Mock fallback
+  await delay(500);
   const key = `${role}-${team}`;
   return (
     onboardingBriefs[key] ?? onboardingBriefs["Senior Product Manager-AI Platform"]
@@ -195,17 +229,48 @@ function searchMemoriesMock(
 }
 
 // ============================================
-// KNOWLEDGE — Offboarding (mock)
+// KNOWLEDGE — Offboarding (REAL DATA from Supabase with mock fallback)
 // ============================================
 
-export function getOffboardingEmployees() {
+let _cachedOffboardingEmployees: Employee[] | null = null;
+
+export async function fetchOffboardingEmployees(): Promise<Employee[]> {
+  try {
+    const res = await fetch("/api/orgpulse/offboarding");
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json();
+    if (data.employees && data.employees.length > 0) {
+      _cachedOffboardingEmployees = data.employees;
+      return data.employees;
+    }
+  } catch {
+    // fall through
+  }
+  _cachedOffboardingEmployees = offboardingEmployees;
   return offboardingEmployees;
+}
+
+export function getOffboardingEmployees() {
+  return _cachedOffboardingEmployees ?? offboardingEmployees;
 }
 
 export async function generateHandoffPack(
   employeeId: string
 ): Promise<HandoffPack | null> {
-  await delay(1200);
+  try {
+    const res = await fetch("/api/orgpulse/offboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeeId }),
+    });
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json();
+    if (data.pack) return data.pack as HandoffPack;
+  } catch {
+    // fall through
+  }
+  // Mock fallback
+  await delay(500);
   return handoffPacks[employeeId] ?? null;
 }
 
