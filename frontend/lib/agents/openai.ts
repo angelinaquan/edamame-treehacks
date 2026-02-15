@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { toFile } from "openai/uploads";
 
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -32,11 +33,15 @@ export async function transcribeAudio(audioInput: File | Buffer): Promise<string
     mimeType = "audio/webm";
   }
 
-  const file = new File([bytes as BlobPart], fileName, { type: mimeType });
+  // Strip codec parameters (e.g. "audio/webm;codecs=opus" → "audio/webm")
+  // because the OpenAI Whisper API rejects MIME types with codec suffixes.
+  const cleanMime = mimeType.split(";")[0].trim();
+
+  const uploadFile = await toFile(bytes, fileName, { type: cleanMime });
 
   const transcription = await openai.audio.transcriptions.create({
     model: "whisper-1",
-    file,
+    file: uploadFile,
     language: "en",
   });
   return transcription.text.trim();
