@@ -86,7 +86,7 @@ export async function listSlackChannels(
 
   do {
     const params: Record<string, string> = {
-      types: "public_channel,private_channel",
+      types: "public_channel",
       exclude_archived: "true",
       limit: "200",
     };
