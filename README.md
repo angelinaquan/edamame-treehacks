@@ -1,4 +1,4 @@
-# AI Clone Platform
+# Edamame
 
 Treehacks project for creating and chatting with "AI clones" that use organizational memory and integrations (Slack, Google, GitHub, Notion, etc.).
 
