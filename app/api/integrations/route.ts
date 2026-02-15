@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getActiveCloneId } from "@/lib/credentials";
+import { syncGitHubContextToSupabase } from "@/lib/github";
+import { syncNotionContextToSupabase } from "@/lib/notion";
+import { syncGoogleDriveContextToSupabase } from "@/lib/google";
 
 type IntegrationProvider =
   | "slack"
@@ -110,9 +114,54 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Auto-trigger sync after saving credentials
+  let syncResult: unknown = null;
+  let syncError: string | null = null;
+
+  try {
+    const cloneId = await getActiveCloneId();
+
+    if (body.provider === "github") {
+      const username =
+        typeof body.config.username === "string"
+          ? body.config.username.trim()
+          : null;
+      if (username && body.config.token) {
+        syncResult = await syncGitHubContextToSupabase({
+          cloneId,
+          username,
+          repoLimit: 10,
+          itemsPerRepo: 10,
+        });
+      }
+    } else if (body.provider === "notion") {
+      if (body.config.api_key) {
+        syncResult = await syncNotionContextToSupabase({
+          cloneId,
+          pageLimit: 20,
+        });
+      }
+    } else if (body.provider === "google_drive") {
+      if (body.config.service_account_json || body.config.api_key) {
+        syncResult = await syncGoogleDriveContextToSupabase({
+          cloneId,
+          fileLimit: 20,
+        });
+      }
+    }
+  } catch (error) {
+    syncError =
+      error instanceof Error ? error.message : "Sync failed after save";
+  }
+
   return NextResponse.json({
     success: true,
     provider: result.data.provider,
     updated_at: result.data.updated_at,
+    sync: syncResult
+      ? { success: true, result: syncResult }
+      : syncError
+        ? { success: false, error: syncError }
+        : null,
   });
 }

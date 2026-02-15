@@ -1,6 +1,7 @@
 import { Client } from "@notionhq/client";
 import { chunkText } from "@/lib/chunker";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getNotionApiKey } from "@/lib/credentials";
 
 interface NotionSearchPage {
   id: string;
@@ -31,11 +32,8 @@ export interface NotionSyncResult {
   chunks_created: number;
 }
 
-function createNotionClient(): Client {
-  const token = process.env.NOTION_API_KEY;
-  if (!token) {
-    throw new Error("Missing NOTION_API_KEY in environment");
-  }
+async function createNotionClient(): Promise<Client> {
+  const token = await getNotionApiKey();
   return new Client({ auth: token });
 }
 
@@ -137,7 +135,7 @@ export async function buildNotionContext(opts: {
   query?: string;
   pageLimit?: number;
 }): Promise<NotionContextSnapshot> {
-  const notion = createNotionClient();
+  const notion = await createNotionClient();
   const pageLimit = Math.min(Math.max(opts.pageLimit ?? 20, 1), 100);
 
   const searchResponse = await notion.search({

@@ -1,6 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import { chunkText } from "@/lib/chunker";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getGitHubToken } from "@/lib/credentials";
 
 export interface GitHubRepoSummary {
   id: number;
@@ -59,14 +60,9 @@ export interface GitHubSyncResult {
   chunks_created: number;
 }
 
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
-});
-
-function ensureGitHubToken(): void {
-  if (!process.env.GITHUB_TOKEN) {
-    throw new Error("Missing GITHUB_TOKEN in environment");
-  }
+async function createOctokit(): Promise<Octokit> {
+  const token = await getGitHubToken();
+  return new Octokit({ auth: token });
 }
 
 function toRepoSummary(repo: {
@@ -98,7 +94,7 @@ function toRepoSummary(repo: {
 }
 
 export async function getAllRepos(owner: string): Promise<string[]> {
-  ensureGitHubToken();
+  const octokit = await createOctokit();
   const repos = await octokit.repos.listForOrg({
     org: owner,
     per_page: 100,
@@ -110,7 +106,7 @@ export async function getUserRepos(
   username: string,
   limit = 20
 ): Promise<GitHubRepoSummary[]> {
-  ensureGitHubToken();
+  const octokit = await createOctokit();
   const repos = await octokit.repos.listForUser({
     username,
     sort: "updated",
@@ -123,7 +119,7 @@ export async function getRepositoryInfo(
   owner: string,
   repo: string
 ): Promise<GitHubRepoSummary> {
-  ensureGitHubToken();
+  const octokit = await createOctokit();
   const res = await octokit.repos.get({ owner, repo });
   return toRepoSummary(res.data);
 }
@@ -132,7 +128,7 @@ export async function getRepositoryLanguages(
   owner: string,
   repo: string
 ): Promise<string[]> {
-  ensureGitHubToken();
+  const octokit = await createOctokit();
   const res = await octokit.repos.listLanguages({ owner, repo });
   return Object.keys(res.data);
 }
@@ -141,7 +137,7 @@ export async function getRepositoryReadme(
   owner: string,
   repo: string
 ): Promise<string | null> {
-  ensureGitHubToken();
+  const octokit = await createOctokit();
   try {
     const res = await octokit.repos.getReadme({
       owner,
@@ -160,7 +156,7 @@ export async function getMostRecentCommits(
   repo: string,
   opts?: { limit?: number; author?: string }
 ): Promise<GitHubCommitSummary[]> {
-  ensureGitHubToken();
+  const octokit = await createOctokit();
   const commits = await octokit.repos.listCommits({
     owner,
     repo,
@@ -181,7 +177,7 @@ export async function getMostRecentPullRequests(
   repo: string,
   opts?: { limit?: number; state?: "open" | "closed" | "all" }
 ): Promise<GitHubPullRequestSummary[]> {
-  ensureGitHubToken();
+  const octokit = await createOctokit();
   const prs = await octokit.pulls.list({
     owner,
     repo,
@@ -207,7 +203,6 @@ export async function buildUserGitHubContext(opts: {
   repoLimit?: number;
   itemsPerRepo?: number;
 }): Promise<GitHubUserContext> {
-  ensureGitHubToken();
   const repoLimit = Math.min(Math.max(opts.repoLimit ?? 10, 1), 100);
   const itemsPerRepo = Math.min(Math.max(opts.itemsPerRepo ?? 10, 1), 100);
 

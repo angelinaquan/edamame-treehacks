@@ -1,6 +1,7 @@
 import { google, drive_v3 } from "googleapis";
 import { chunkText } from "@/lib/chunker";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getGoogleDriveCredentials } from "@/lib/credentials";
 
 export interface GoogleDriveFileSnapshot {
   file_id: string;
@@ -26,26 +27,25 @@ export interface GoogleDriveSyncResult {
   chunks_created: number;
 }
 
-function createGoogleAuth(): InstanceType<typeof google.auth.GoogleAuth> {
+async function createGoogleAuth(): Promise<InstanceType<typeof google.auth.GoogleAuth>> {
   const scopes = ["https://www.googleapis.com/auth/drive.readonly"];
-  const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  const keyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
+  const creds = await getGoogleDriveCredentials();
 
-  if (serviceAccountJson) {
+  if (creds.serviceAccountJson) {
     return new google.auth.GoogleAuth({
-      credentials: JSON.parse(serviceAccountJson) as Record<string, unknown>,
+      credentials: JSON.parse(creds.serviceAccountJson) as Record<string, unknown>,
       scopes,
     });
   }
 
   return new google.auth.GoogleAuth({
-    keyFile: keyFile || "service-account.json",
+    keyFile: creds.keyFile || "service-account.json",
     scopes,
   });
 }
 
-function createDriveClient(): drive_v3.Drive {
-  const auth = createGoogleAuth();
+async function createDriveClient(): Promise<drive_v3.Drive> {
+  const auth = await createGoogleAuth();
   return google.drive({
     version: "v3",
     auth,
@@ -124,7 +124,7 @@ export async function listDriveFiles(opts?: {
   query?: string;
   fileLimit?: number;
 }): Promise<drive_v3.Schema$File[]> {
-  const drive = createDriveClient();
+  const drive = await createDriveClient();
   const fileLimit = Math.min(Math.max(opts?.fileLimit ?? 25, 1), 100);
 
   const queryParts = ["trashed = false"];
@@ -150,7 +150,7 @@ export async function buildGoogleDriveContext(opts?: {
   query?: string;
   fileLimit?: number;
 }): Promise<GoogleDriveContextSnapshot> {
-  const drive = createDriveClient();
+  const drive = await createDriveClient();
   const files = await listDriveFiles({
     query: opts?.query,
     fileLimit: opts?.fileLimit,

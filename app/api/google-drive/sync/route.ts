@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { syncGoogleDriveContextToSupabase } from "@/lib/google";
+import { getActiveCloneId } from "@/lib/credentials";
 
 interface SyncRequestBody {
   cloneId?: string;
@@ -10,14 +11,11 @@ interface SyncRequestBody {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as SyncRequestBody;
-    const cloneId = body.cloneId?.trim();
 
-    if (!cloneId) {
-      return NextResponse.json(
-        { error: "cloneId is required" },
-        { status: 400 }
-      );
-    }
+    const cloneId =
+      !body.cloneId || body.cloneId === "auto"
+        ? await getActiveCloneId()
+        : body.cloneId.trim();
 
     const result = await syncGoogleDriveContextToSupabase({
       cloneId,

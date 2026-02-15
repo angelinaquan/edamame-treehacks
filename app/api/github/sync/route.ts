@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { syncGitHubContextToSupabase } from "@/lib/github";
+import { getActiveCloneId, getGitHubUsername } from "@/lib/credentials";
 
 interface SyncRequestBody {
   cloneId?: string;
@@ -11,12 +12,18 @@ interface SyncRequestBody {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as SyncRequestBody;
-    const cloneId = body.cloneId?.trim();
-    const username = body.username?.trim();
 
-    if (!cloneId || !username) {
+    const cloneId =
+      !body.cloneId || body.cloneId === "auto"
+        ? await getActiveCloneId()
+        : body.cloneId.trim();
+
+    const username =
+      body.username?.trim() || (await getGitHubUsername());
+
+    if (!username) {
       return NextResponse.json(
-        { error: "cloneId and username are required" },
+        { error: "username is required (pass it or save it in Settings)" },
         { status: 400 }
       );
     }
