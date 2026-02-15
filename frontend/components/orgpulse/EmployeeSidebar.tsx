@@ -35,6 +35,9 @@ export function EmployeeSidebar({
   onViewChange,
   onDemoMode,
 }: EmployeeSidebarProps) {
+  const email = typeof window !== "undefined" ? sessionStorage.getItem("orgpulse_email") || "" : "";
+  const cloneName = typeof window !== "undefined" ? sessionStorage.getItem("orgpulse_clone_name") || "" : "";
+
   return (
     <aside className="flex h-full w-[240px] flex-col border-r border-neutral-200 bg-neutral-50/70">
       {/* Logo */}
@@ -45,10 +48,19 @@ export function EmployeeSidebar({
         <span className="text-[15px] font-semibold tracking-tight text-neutral-900">
           OrgPulse
         </span>
-        <span className="ml-auto rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
-          Employee
-        </span>
       </div>
+
+      {/* User info */}
+      {(cloneName || email) && (
+        <div className="mx-3 mb-3 rounded-lg bg-emerald-50 px-3 py-2">
+          <p className="text-[12px] font-medium text-emerald-700">
+            {cloneName || email}
+          </p>
+          {cloneName && email && (
+            <p className="text-[10px] text-emerald-600">{email}</p>
+          )}
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 px-3 pt-2">

@@ -108,9 +108,26 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  // Load the first available clone (the employee's own twin)
+  // Load the employee's own twin clone based on email mapping
   useEffect(() => {
     fetchCloneProfiles().then((profiles) => {
+      const cloneName = typeof window !== "undefined"
+        ? sessionStorage.getItem("orgpulse_clone_name") || ""
+        : "";
+      
+      // Try to match by stored clone name
+      if (cloneName) {
+        const match = profiles.find((p) =>
+          p.employee.name.toLowerCase().includes(cloneName.toLowerCase())
+        );
+        if (match) {
+          setProfile(match);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Fallback to first clone
       if (profiles.length > 0) {
         setProfile(profiles[0]);
       }

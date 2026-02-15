@@ -47,9 +47,12 @@ export function CeoSidebar({ activeView, onViewChange, onDemoMode }: CeoSidebarP
         <span className="text-[15px] font-semibold tracking-tight text-neutral-900">
           OrgPulse
         </span>
-        <span className="ml-auto rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600">
-          CEO
-        </span>
+      </div>
+
+      {/* Role badge */}
+      <div className="mx-3 mb-3 rounded-lg bg-indigo-50 px-3 py-2">
+        <p className="text-[12px] font-medium text-indigo-700">CEO / Manager</p>
+        <p className="text-[10px] text-indigo-500">Organization-wide access</p>
       </div>
 
       {/* Navigation */}
