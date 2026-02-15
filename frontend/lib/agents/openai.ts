@@ -14,14 +14,26 @@ export default getOpenAIClient;
 
 export async function transcribeAudio(audioInput: File | Buffer): Promise<string> {
   const openai = getOpenAIClient();
-  const file =
-    audioInput instanceof File
-      ? audioInput
-      : new File([new Uint8Array(audioInput)], "audio.webm", {
-          type: "audio/webm",
-        });
-  // Pass the raw File directly to preserve original codec/container metadata.
-  // whisper-1 handles webm/opus, ogg, mp4, mp3, wav natively.
+
+  // Always materialise into a fresh File from a Buffer to avoid stale
+  // stream / blob issues with the OpenAI SDK on repeated calls.
+  let bytes: Uint8Array;
+  let fileName: string;
+  let mimeType: string;
+
+  if (audioInput instanceof File) {
+    const ab = await audioInput.arrayBuffer();
+    bytes = new Uint8Array(ab);
+    fileName = audioInput.name || "audio.webm";
+    mimeType = audioInput.type || "audio/webm";
+  } else {
+    bytes = new Uint8Array(audioInput);
+    fileName = "audio.webm";
+    mimeType = "audio/webm";
+  }
+
+  const file = new File([bytes as BlobPart], fileName, { type: mimeType });
+
   const transcription = await openai.audio.transcriptions.create({
     model: "whisper-1",
     file,

@@ -226,11 +226,26 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [memoryEntries, setMemoryEntries] = useState<MemoryEntry[]>([]);
   const [memoryPanelOpen, setMemoryPanelOpen] = useState(true);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Refs to avoid stale closures in recording callbacks
+  const isStreamingRef = useRef(false);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const modeRef = useRef(mode);
+  const startRecordingRef = useRef<() => void>(() => {});
+
+  // Keep refs in sync
+  useEffect(() => { isStreamingRef.current = isStreaming; }, [isStreaming]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
 
   // Load the employee's own twin clone based on email mapping
   useEffect(() => {
@@ -257,6 +272,26 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
       }
       setLoading(false);
     });
+  }, []);
+
+  // Enumerate audio input devices
+  useEffect(() => {
+    async function loadDevices() {
+      try {
+        const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        tempStream.getTracks().forEach((t) => t.stop());
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const inputs = devices.filter((d) => d.kind === "audioinput");
+        setAudioDevices(inputs);
+        if (inputs.length > 0 && !selectedDeviceId) {
+          setSelectedDeviceId(inputs[0].deviceId);
+        }
+      } catch {
+        // permission denied — will surface when they try to record
+      }
+    }
+    loadDevices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -286,7 +321,6 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
             }
           );
           setMemoryEntries((prev) => {
-            // Merge: keep any "extracting" placeholders, add real entries
             const extracting = prev.filter((e) => e.status === "extracting");
             return [...extracting, ...initial];
           });
@@ -322,14 +356,12 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
           }
           if (newEntries.length > 0) {
             setMemoryEntries((prev) => {
-              // Remove "extracting" placeholders when real entries arrive
               const withoutExtracting = prev.filter(
                 (e) => e.status !== "extracting"
               );
               return [...newEntries, ...withoutExtracting];
             });
           }
-          // Update the poll cursor to the newest entry's timestamp
           lastPollRef.current = data.entries[0].timestamp;
         }
       } catch {
@@ -340,9 +372,47 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // TTS: speak the assistant's response aloud
+  const speakText = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    try {
+      setIsPlayingAudio(true);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      const res = await fetch("/api/voice/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error("TTS failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        setIsPlayingAudio(false);
+        URL.revokeObjectURL(url);
+        audioRef.current = null;
+        if (modeRef.current === "voice") {
+          setTimeout(() => startRecordingRef.current(), 300);
+        }
+      };
+      audio.onerror = () => {
+        setIsPlayingAudio(false);
+        URL.revokeObjectURL(url);
+        audioRef.current = null;
+      };
+      await audio.play();
+    } catch {
+      setIsPlayingAudio(false);
+    }
+  }, []);
+
   const sendMessage = useCallback(
     async (question: string) => {
-      if (!profile || !question.trim() || isStreaming) return;
+      if (!profile || !question.trim() || isStreamingRef.current) return;
 
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
@@ -379,7 +449,7 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
       try {
         let accumulated = "";
         let cites: Citation[] = [];
-        const prevMessages = messages.map((m) => ({ role: m.role, content: m.content }));
+        const prevMessages = messagesRef.current.map((m) => ({ role: m.role, content: m.content }));
         const stream = streamCloneChat(
           profile.employee.id,
           question,
@@ -410,6 +480,11 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
           citations: cites.length > 0 ? cites : undefined,
         };
         setMessages((prev) => [...prev, assistantMsg]);
+
+        // Auto-speak in voice mode
+        if (modeRef.current === "voice" && accumulated.trim()) {
+          speakText(accumulated);
+        }
       } catch {
         // aborted — clean up extracting placeholder
         setMemoryEntries((prev) =>
@@ -421,7 +496,7 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
       setStreamingContent("");
       setStreamingCitations([]);
     },
-    [profile, isStreaming, messages]
+    [profile, speakText]
   );
 
   const handleSubmit = useCallback(
@@ -435,8 +510,19 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
   // ---- Voice recording ----
   const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {}),
+        },
+      });
+
+      const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"]
+        .find((t) => MediaRecorder.isTypeSupported(t)) || "audio/webm";
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -446,21 +532,30 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const blobType = chunksRef.current[0]?.type || mimeType;
+        const audioBlob = new Blob(chunksRef.current, { type: blobType });
         setIsRecording(false);
+
+        // Guard: skip if no audio data was captured
+        if (audioBlob.size === 0) {
+          console.warn("[voice] Empty audio blob, skipping transcription");
+          return;
+        }
+
         setIsTranscribing(true);
 
         try {
+          const ext = blobType.includes("ogg") ? "ogg" : blobType.includes("mp4") ? "m4a" : "webm";
           const formData = new FormData();
-          formData.append("file", audioBlob, "recording.webm");
+          formData.append("audio", audioBlob, `recording.${ext}`);
           const res = await fetch("/api/voice/transcribe", {
             method: "POST",
             body: formData,
           });
           if (res.ok) {
             const data = await res.json();
-            if (data.text) {
-              sendMessage(data.text);
+            if (data.text?.trim()) {
+              sendMessage(data.text.trim());
             }
           }
         } catch {
@@ -469,15 +564,22 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
         setIsTranscribing(false);
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(1000);
       setIsRecording(true);
     } catch {
       // mic access denied
     }
-  }, [sendMessage]);
+  }, [sendMessage, selectedDeviceId]);
+
+  // Keep ref in sync so speakText's onended can call the latest version
+  useEffect(() => { startRecordingRef.current = startRecording; }, [startRecording]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
+      // Flush any buffered audio data before stopping to avoid empty blobs
+      if (mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.requestData();
+      }
       mediaRecorderRef.current.stop();
     }
   }, [isRecording]);
@@ -668,18 +770,37 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
         ) : (
           /* Voice mode */
           <div className="flex flex-col items-center gap-3 py-4">
+            {/* Microphone selector */}
+            {audioDevices.length > 0 && (
+              <select
+                value={selectedDeviceId}
+                onChange={(e) => setSelectedDeviceId(e.target.value)}
+                disabled={isRecording || isTranscribing}
+                className="mb-1 w-64 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[12px] text-neutral-600 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              >
+                {audioDevices.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label || `Mic ${d.deviceId.slice(0, 8)}…`}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               onClick={isRecording ? stopRecording : startRecording}
-              disabled={isStreaming || isTranscribing}
+              disabled={isStreaming || isTranscribing || isPlayingAudio}
               className={`flex h-16 w-16 items-center justify-center rounded-full transition-all ${
-                isRecording
+                isPlayingAudio
+                  ? "bg-gradient-to-br from-blue-500 to-violet-600 text-white shadow-lg shadow-blue-200 animate-pulse"
+                  : isRecording
                   ? "bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse"
                   : isTranscribing
                   ? "bg-amber-100 text-amber-600"
                   : "bg-neutral-900 text-white hover:bg-neutral-800 shadow-lg"
               }`}
             >
-              {isTranscribing ? (
+              {isPlayingAudio ? (
+                <Volume2 size={24} />
+              ) : isTranscribing ? (
                 <Loader2 size={24} className="animate-spin" />
               ) : isRecording ? (
                 <MicOff size={24} />
@@ -688,7 +809,9 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
               )}
             </button>
             <p className="text-[12px] text-neutral-500">
-              {isRecording
+              {isPlayingAudio
+                ? "Speaking…"
+                : isRecording
                 ? "Recording… tap to stop"
                 : isTranscribing
                 ? "Transcribing…"
