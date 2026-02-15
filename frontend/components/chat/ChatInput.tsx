@@ -21,6 +21,16 @@ export function ChatInput({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  function getBestAudioMimeType(): string | undefined {
+    const candidates = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+      "audio/mp4",
+    ];
+    return candidates.find((type) => MediaRecorder.isTypeSupported(type));
+  }
+
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -54,11 +64,16 @@ export function ChatInput({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "audio/webm",
-      });
+      const mimeType = getBestAudioMimeType();
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -67,13 +82,19 @@ export function ChatInput({
       };
 
       mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const blobType = chunksRef.current[0]?.type || mimeType || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: blobType });
         stream.getTracks().forEach((t) => t.stop());
 
         // Transcribe
         try {
           const formData = new FormData();
-          formData.append("audio", blob, "recording.webm");
+          const extension = blobType.includes("ogg")
+            ? "ogg"
+            : blobType.includes("mp4")
+              ? "m4a"
+              : "webm";
+          formData.append("audio", blob, `recording.${extension}`);
           const res = await fetch("/api/voice/transcribe", {
             method: "POST",
             body: formData,
@@ -87,7 +108,7 @@ export function ChatInput({
         }
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(1000);
       setIsRecording(true);
     } catch (err) {
       console.error("Mic access denied:", err);

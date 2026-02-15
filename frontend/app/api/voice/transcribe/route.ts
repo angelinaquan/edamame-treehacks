@@ -4,7 +4,7 @@ import { transcribeAudio } from "@/lib/agents/openai";
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const audioFile = formData.get("audio") as File;
+    const audioFile = formData.get("audio") as File | null;
 
     if (!audioFile) {
       return NextResponse.json(
@@ -13,15 +13,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const buffer = Buffer.from(await audioFile.arrayBuffer());
-    const text = await transcribeAudio(buffer);
+    console.log(`[transcribe] audio size=${audioFile.size} type=${audioFile.type} name=${audioFile.name}`);
 
+    const text = await transcribeAudio(audioFile);
     return NextResponse.json({ text });
   } catch (error) {
-    console.error("Transcription error:", error);
-    return NextResponse.json(
-      { error: "Failed to transcribe audio" },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to transcribe audio";
+    console.error("Voice transcription error:", error);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
