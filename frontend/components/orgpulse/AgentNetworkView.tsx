@@ -50,9 +50,10 @@ const DEFAULT_AGENTS: AgentNode[] = [
   { id: "orchestrator", name: "Orchestrator", role: "Coordinator", color: "#c4b5a0", x: 300, y: 50 },
   { id: "research", name: "Research", role: "Data Gathering", color: "#60a5fa", x: 120, y: 160 },
   { id: "aggregator", name: "Aggregator", role: "Synthesis", color: "#a78bfa", x: 480, y: 160 },
-  { id: "clone_1", name: "Marcus C.", role: "Engineering", color: "#34d399", x: 60, y: 300 },
-  { id: "clone_2", name: "Sarah K.", role: "Product", color: "#fbbf24", x: 210, y: 316 },
-  { id: "clone_3", name: "Alex R.", role: "Design", color: "#f472b6", x: 360, y: 300 },
+  { id: "clone_1", name: "James L.", role: "ML Engineer", color: "#34d399", x: 60, y: 300 },
+  { id: "clone_2", name: "Ella L.", role: "Full-Stack", color: "#fbbf24", x: 210, y: 316 },
+  { id: "clone_3", name: "Angelina Q.", role: "Product & Frontend", color: "#f472b6", x: 360, y: 300 },
+  { id: "clone_4", name: "Videet M.", role: "Backend & Infra", color: "#38bdf8", x: 510, y: 316 },
 ];
 
 const DEFAULT_EDGES: [string, string][] = [
@@ -61,20 +62,23 @@ const DEFAULT_EDGES: [string, string][] = [
   ["research", "clone_1"],
   ["research", "clone_2"],
   ["research", "clone_3"],
+  ["research", "clone_4"],
   ["research", "aggregator"],
 ];
 
 const SIMULATION_SEQUENCE: Omit<AgentMessage, "id" | "timestamp">[] = [
-  { fromId: "orchestrator", toId: "research", type: "task", content: "Analyze employee sentiment on discontinuing Meridian Analytics product line" },
-  { fromId: "research", toId: "clone_1", type: "query", content: "What are your thoughts on discontinuing Meridian Analytics?" },
-  { fromId: "clone_1", toId: "research", type: "response", content: "Strong opposition — this is our core analytics platform with 40+ enterprise clients" },
-  { fromId: "research", toId: "clone_2", type: "query", content: "What impact would discontinuing Meridian have on your roadmap?" },
-  { fromId: "clone_2", toId: "research", type: "response", content: "Significant disruption — 3 upcoming features depend on Meridian infrastructure" },
-  { fromId: "research", toId: "clone_3", type: "query", content: "From a design perspective, how would this affect user experience?" },
-  { fromId: "clone_3", toId: "research", type: "response", content: "Users would lose key workflows — migration path needs careful UX planning" },
-  { fromId: "research", toId: "aggregator", type: "data", content: "Compiled 3 employee responses — transferring for sentiment analysis" },
-  { fromId: "aggregator", toId: "orchestrator", type: "status", content: "Synthesizing themes: product dependency, roadmap disruption, UX impact" },
-  { fromId: "aggregator", toId: "orchestrator", type: "approval", content: "Analysis complete — 67% oppose, 33% neutral. 4 key themes identified" },
+  { fromId: "orchestrator", toId: "research", type: "task", content: "Gather team status on the Ambient Intelligence demo — what's blocking launch?" },
+  { fromId: "research", toId: "clone_1", type: "query", content: "James, what's the status on the ML pipeline for Ambient Intelligence?" },
+  { fromId: "clone_1", toId: "research", type: "response", content: "Model inference is ready but we need Videet's streaming endpoint to go live first" },
+  { fromId: "research", toId: "clone_2", type: "query", content: "Ella, how's the full-stack integration looking for the demo?" },
+  { fromId: "clone_2", toId: "research", type: "response", content: "Frontend is wired up — waiting on the real-time WebSocket feed from backend" },
+  { fromId: "research", toId: "clone_3", type: "query", content: "Angelina, is the product flow and UI ready for the demo?" },
+  { fromId: "clone_3", toId: "research", type: "response", content: "UI is polished, but we need to finalize the onboarding copy and loading states" },
+  { fromId: "research", toId: "clone_4", type: "query", content: "Videet, what's the infra status for the streaming endpoint?" },
+  { fromId: "clone_4", toId: "research", type: "response", content: "Deploying to Modal tonight — should be live by morning, then James can hook in" },
+  { fromId: "research", toId: "aggregator", type: "data", content: "Compiled 4 team responses — transferring for status synthesis" },
+  { fromId: "aggregator", toId: "orchestrator", type: "status", content: "Synthesizing: ML ready, frontend ready, infra deploying tonight, UI needs copy pass" },
+  { fromId: "aggregator", toId: "orchestrator", type: "approval", content: "Demo on track — critical path: Videet's deploy → James hooks ML → Ella integrates → Angelina finalizes UI" },
 ];
 
 // ============================================
@@ -224,7 +228,7 @@ export function AgentNetworkView({
     timersRef.current = [];
 
     const delays = [
-      0, 1400, 2800, 4000, 5400, 6800, 8200, 10000, 11500, 13000,
+      0, 1400, 2800, 4000, 5400, 6800, 8200, 9600, 11000, 12400, 13800, 15200,
     ];
 
     SIMULATION_SEQUENCE.forEach((msg, i) => {
@@ -248,8 +252,8 @@ export function AgentNetworkView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger]);
 
-  const svgWidth = 600;
-  const svgHeight = compact ? 280 : 360;
+  const svgWidth = 620;
+  const svgHeight = compact ? 300 : 380;
 
   return (
     <div
