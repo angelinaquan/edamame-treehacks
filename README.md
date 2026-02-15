@@ -1,117 +1,161 @@
 # Edamame
 
-Treehacks project for creating and chatting with "AI clones" that use organizational memory and integrations (Slack, Google, GitHub, Notion, etc.).
+AI clones for organizational memory. Edamame ingests knowledge from Slack, Google Drive, Gmail, GitHub, Notion, and Jira to create digital twin clones of every person in your organization — queryable 24/7 in text or voice, with source citations and continual learning.
 
-## Project Layout
+Built at TreeHacks 2025.
 
-- `frontend/`: Next.js 16 app (UI + API routes).
-- `backend/memory/`: Memory retrieval, compaction, and provider switching (Supabase or Mem0).
-- `backend/modal/`: Python helpers for clone reasoning, embeddings, STT, and TTS (for Modal-hosted inference services).
-- `backend/supabase/`: SQL schema and migration scripts.
+## Features
+
+- **Clone Chat** — Talk to any employee's digital twin in text or voice. Personality-aware responses with inline source citations. Clones learn from every conversation via fact extraction and episodic memory.
+- **CEO Insights** — Multi-clone sentiment analysis. Ask a strategic question and poll all clones simultaneously for per-person stances, confidence scores, and aggregated themes. Animated agent network visualization shows the query in real-time.
+- **Onboarding Briefs** — Auto-generated "here's what you need to know" docs for new hires: key people, recent decisions, open risks.
+- **Offboarding Handoff Packs** — When someone leaves, their clone generates ownership areas, unresolved work, key links, and suggested new owners.
+- **Knowledge Base** — Semantic search across all ingested memories with source and type filtering.
+- **Clone-to-Clone Consultation** — When a clone doesn't know something, it consults other clones via an agent-to-agent protocol.
+- **Voice I/O** — Full spoken conversations with clones using Whisper (STT) and OpenAI TTS.
+- **Real-time Slack Learning** — Webhook-driven ingestion. Clones absorb new Slack messages as they're sent.
+- **Synthetic Data Generation** — Seeded deterministic generator creates realistic Slack messages, Drive docs, GitHub commits, emails, Jira tickets, and Notion pages for demos.
+
+## Architecture
+
+```
+├── frontend/              Next.js 16 app (UI + API routes)
+│   ├── app/               Pages and API routes
+│   │   ├── page.tsx       Landing / auth page
+│   │   ├── ceo/           CEO view (insights, clones, knowledge)
+│   │   ├── employee/      Employee view (chat, coworkers, knowledge)
+│   │   ├── (app)/         Dashboard, settings, clone management
+│   │   └── api/
+│   │       ├── orgpulse/  Clone chat, insights, onboarding, offboarding
+│   │       ├── chat/      General chat endpoint
+│   │       ├── voice/     Whisper transcription + TTS synthesis
+│   │       ├── ingest/    Data ingestion + synthetic generation
+│   │       ├── memory/    Memory search + compaction
+│   │       ├── clones/    Clone CRUD
+│   │       ├── slack/     Slack OAuth, sync, webhook events
+│   │       ├── google-drive/ Drive sync
+│   │       ├── gmail/     Gmail sync
+│   │       ├── github/    GitHub sync
+│   │       ├── notion/    Notion sync
+│   │       └── auth/      Google OAuth flow
+│   ├── components/
+│   │   ├── orgpulse/      InsightsView, ClonesView, EmployeeChatView,
+│   │   │                  KnowledgeView, AgentNetworkView, Sidebars
+│   │   ├── chat/          ChatWindow, MessageBubble, ThinkingPanel
+│   │   ├── voice/         VoiceButton, Waveform
+│   │   ├── dashboard/     CloneGrid, CloneCard, ConversationLog
+│   │   └── clone-builder/ PersonalityForm, DocumentUpload
+│   └── lib/
+│       ├── agents/        OpenAI client, clone-brain prompting,
+│       │                  collaboration (clone-to-clone), Perplexity
+│       ├── core/          Types, Supabase client, chunker, utils
+│       ├── integrations/  Slack, Google, GitHub, Notion connectors
+│       ├── memory/        Frontend memory search helpers
+│       └── orgpulse/      OrgPulse API client + types
+├── backend/
+│   ├── memory/            Memory system: retrieval, compaction,
+│   │   │                  continual learning, episodic extraction
+│   │   └── synthetic/     Synthetic data generators (Slack, Drive,
+│   │                      email, GitHub, Jira, Notion, world builder)
+│   ├── modal/             Python modules for Modal deployment
+│   │                      (agent, embed, STT, TTS)
+│   └── supabase/          SQL schema + migrations
+└── synthetic_corpus/      Pre-generated demo data
+```
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS |
+| Database | Supabase (PostgreSQL + pgvector) |
+| LLM | OpenAI GPT-4o |
+| Embeddings | text-embedding-3-small (1536-d), IVFFlat indexing |
+| Voice | Whisper-1 (STT), TTS-1 with Nova voice |
+| Integrations | Slack API, Google OAuth (Drive + Gmail), Octokit (GitHub), Notion API |
+| ML Infra | Modal (optional, for hosted inference) |
+| Memory | Supabase (primary), Mem0 (optional fallback) |
 
 ## Prerequisites
 
 - Node.js 20+
 - npm
-- Supabase project (recommended for full memory features)
+- Supabase project with pgvector extension
 - OpenAI API key
-- Python 3.11+ (only if you want to run or extend `backend/modal`)
+- Python 3.11+ (only for `backend/modal/`)
 
 ## Quick Start
 
-### 1) Install frontend dependencies
+### 1. Install dependencies
 
 ```bash
 cd frontend
 npm install
 ```
 
-### 2) Create environment file
+### 2. Configure environment
 
-Create `frontend/.env.local`:
+Copy `.env.example` to `frontend/.env.local` and fill in your keys (OpenAI, Supabase, and optionally Google OAuth, Slack, GitHub, Notion).
 
-```bash
-OPENAI_API_KEY=your_openai_key
+### 3. Initialize database
 
-# Supabase (required for persisted memory and clone data)
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-USE_SUPABASE_MEMORY=true
-MEMORY_PROVIDER=supabase
+Run `backend/supabase/schema.sql` in your Supabase SQL editor. This creates:
 
-# App URLs (used in OAuth callbacks)
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+- `clones` — One per person, includes personality and expertise tags
+- `memories` — Unified knowledge store with type discriminators (`document`, `chunk`, `fact`, `snapshot`, `category`, `episodic`) and source tags (`slack`, `gdrive`, `email`, `github`, `notion`, `jira`, `voice`, `conversation`)
+- `messages` — Flat chat history grouped by conversation
+- `integrations` — OAuth credentials and sync config
+- `match_memories` — pgvector cosine similarity search function
 
-# Optional: external memory provider
-# MEMORY_PROVIDER=mem0
-# MEM0_API_KEY=...
-# MEM0_BASE_URL=https://api.mem0.ai
-# MEM0_AUTH_SCHEME=Token
-# MEM0_ADD_PATH=/v2/memories/
-# MEM0_SEARCH_PATH=/v2/memories/search/
-# MEM0_FILTER_FIELD=user_id
+If migrating from an older schema, use `backend/supabase/migrate.sql` instead.
 
-# Optional: integrations
-# GITHUB_TOKEN=...
-# NOTION_API_KEY=...
-# GOOGLE_CLIENT_ID=...
-# GOOGLE_CLIENT_SECRET=...
-# GOOGLE_SERVICE_ACCOUNT_JSON=...   # or set GOOGLE_SERVICE_ACCOUNT_KEY_FILE
-# GOOGLE_SERVICE_ACCOUNT_KEY_FILE=service-account.json
-# SLACK_CLIENT_ID=...
-# SLACK_CLIENT_SECRET=...
-# SLACK_BOT_TOKEN=...
-# PERPLEXITY_API_KEY=...
-
-# Optional: external Modal service URL
-# MODAL_BASE_URL=http://localhost:8000
-```
-
-### 3) Initialize database schema
-
-In your Supabase SQL editor, run:
-
-- `backend/supabase/schema.sql` for clean setup, or
-- `backend/supabase/migrate.sql` if you are migrating from older tables.
-
-### 4) Run the app
+### 4. Run the app
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Modal / Python Backend Notes
+### 5. (Optional) Generate synthetic data
 
-`backend/modal/` currently contains reusable Python modules (`agent.py`, `embed.py`, `stt.py`, `tts.py`) and Modal app/image config in `app.py`. If you deploy these as an HTTP service, point `MODAL_BASE_URL` to that service so the frontend can call endpoints like:
+Hit `POST /api/ingest/synthetic` with a clone ID to populate a clone with realistic demo data across all sources.
 
-- `/agent/run`
-- `/embed`
-- `/stt/transcribe`
-- `/tts/synthesize`
+## How Memory Works
 
-Install Python dependencies with:
+All clone knowledge lives in a single `memories` table:
 
-```bash
-cd backend/modal
-pip install -r requirements.txt
-```
+1. **Ingestion** — Data from Slack, Drive, Gmail, GitHub, Notion, Jira is synced and chunked (500-token segments with 50-token overlap)
+2. **Embedding** — Each chunk/fact gets a 1536-d embedding via `text-embedding-3-small`
+3. **Retrieval** — Semantic vector search via `match_memories` RPC with keyword fallback. Results are re-ranked using a composite score: `similarity + recencyBonus(occurred_at)`
+4. **Continual Learning** — Conversations trigger fact extraction and episodic memory extraction. Near-duplicates (similarity > 0.88) are reinforced instead of duplicated
+5. **Compaction** — Weekly summarization rolls up stale facts into category summaries. Monthly rewind creates snapshots
 
 ## Scripts
 
 From `frontend/`:
 
-- `npm run dev`: start local dev server
-- `npm run build`: production build
-- `npm run start`: run production server
-- `npm run lint`: run ESLint
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server |
+| `npm run build` | Production build |
+| `npm run start` | Run production server |
+| `npm run lint` | Run ESLint |
 
-## Memory Provider Behavior
+## Modal (Python Backend)
 
-- `MEMORY_PROVIDER=supabase`: reads/writes memory in Supabase (recommended default).
-- `MEMORY_PROVIDER=mem0`: routes memory context lookups through Mem0 when configured.
-- If Mem0 fails at runtime, code attempts Supabase fallback when `USE_SUPABASE_MEMORY=true` and Supabase credentials are available.
+`backend/modal/` contains optional Python modules for Modal-hosted inference:
+
+- `agent.py` — Clone reasoning
+- `embed.py` — Embedding generation
+- `stt.py` — Speech-to-text
+- `tts.py` — Text-to-speech
+- `multi_agent.py` — Multi-agent orchestration
+
+Set `MODAL_BASE_URL` in your env to point to the deployed Modal service.
+
+```bash
+cd backend/modal
+pip install -r requirements.txt
+```
