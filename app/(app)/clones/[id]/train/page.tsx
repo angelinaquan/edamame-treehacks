@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Slack, Upload, User, Tag, CheckCircle2 } from "lucide-react";
 import { PersonalityForm } from "@/components/clone-builder/PersonalityForm";
 import { DocumentUpload } from "@/components/clone-builder/DocumentUpload";
+import { MeetingRecorder } from "@/components/meetings/MeetingRecorder";
 
 const steps = [
   { id: "slack", label: "Connect Slack", icon: Slack },
@@ -133,6 +134,7 @@ export default function TrainClonePage({
               represent your expertise.
             </p>
             <DocumentUpload cloneId={id} />
+            <MeetingRecorder cloneId={id} />
             <button
               onClick={() => setCurrentStep(2)}
               className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
