@@ -1,0 +1,12 @@
+Meeting: MVP scope lockdown
+Date: 2026-02-07
+Attendees: James Liu, Angelina Quan, Videet Mehta, Ella Lan
+References: {"decisions": ["dec-006"]}
+============================================================
+
+[00:00] James: Scope call. Here's my proposal: 5 features, not 8. Cut Jira, Notion, voice clone. Keep clone chat, CEO insights, continual learning, live Slack, onboarding briefs.
+[00:20] Ella: I'd actually cut to 4. The onboarding brief is a different use case — it might confuse judges. Keep the story tight.
+[00:35] James: Counter: onboarding brief is the "so what?" moment. It shows enterprise value beyond "cool chatbot." Keeping it, but showing it last.
+[00:50] Angelina: Fine with 5 IF we have eval metrics for each. No unmeasured features in the demo.
+[01:05] Videet: 5 features, 7 days, 4 people. That's ~1.4 features per person per week. Tight but doable if we stop debating and start building.
+[01:20] James: Deal. Features locked. No additions after today. If someone suggests a new feature, the answer is "post-hackathon." ref: dec-006.

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "msg-018",
+    "channel": "build",
+    "author": "angelina",
+    "text": "Videet \u2014 I reviewed your retrieval code. Two issues:\n\n1. The WHERE clause doesn't filter by clone_id. This means Marcus's clone will retrieve Sarah's Slack messages. That's a correctness bug, not a performance issue.\n\n2. The reranker threshold is 0.4 \u2014 that's very permissive. I tested with 20 queries and 3 of them returned chunks that were topically related but factually wrong person. We need at least 0.6.\n\nThis is exactly the kind of \"works in demo but breaks under scrutiny\" issue I keep flagging.",
+    "references": {
+      "decisions": [
+        "dec-010"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-06T22:58:09"
+  },
+  {
+    "id": "msg-019",
+    "channel": "build",
+    "author": "videet",
+    "text": "you're right on #1 \u2014 that's a bug, fixing now. WHERE clone_id = $1 added.\n\non #2: 0.4 vs 0.6 is a tradeoff. higher threshold = fewer but more precise citations. lower = more citations but risk of wrong-person attribution. I'll run a proper eval tonight \u2014 50 test queries, measure precision@5 at thresholds 0.4, 0.5, 0.6, 0.7.\n\nwill this survive a live demo? yes if we get the threshold right. no if we guess.",
+    "references": {
+      "decisions": [
+        "dec-010"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-06T23:34:10"
+  }
+]

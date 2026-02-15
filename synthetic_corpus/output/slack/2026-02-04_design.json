@@ -1,0 +1,11 @@
+[
+  {
+    "id": "msg-012",
+    "channel": "design",
+    "author": "ella",
+    "text": "but what does the judge actually see when we say \"memory hierarchy\"? they don't care about document \u2192 chunk \u2192 fact \u2192 category. they care about:\n\n1. \"I asked the clone a question and it gave a specific, cited answer\" (chunks)\n2. \"The clone remembers something I told it 5 minutes ago\" (facts)\n3. \"The CEO can see what the whole team thinks\" (categories \u2192 insights)\n\nlet's frame the hierarchy through these three user stories, not through database terminology.",
+    "references": {},
+    "thread_id": null,
+    "timestamp": "2026-02-04T18:27:32"
+  }
+]

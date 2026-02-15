@@ -1,0 +1,86 @@
+[
+  {
+    "id": "james",
+    "name": "James Liu",
+    "role": "Strategy & Demo Narrative Lead",
+    "school": "Stanford",
+    "tells": [
+      "starts messages with 'look,' or 'here's the thing \u2014'",
+      "uses em dashes extensively",
+      "drops articles: 'need to ship' not 'we need to ship'",
+      "recurring phrase: 'judges will eat this up'",
+      "recurring phrase: 'are we being bold enough?'",
+      "ends with action-oriented directives"
+    ],
+    "biases": [
+      "Pushes for bold features that win prizes over safe choices",
+      "Cuts scope aggressively \u2014 prefers 3 polished features to 8 rough ones",
+      "Narrative-driven: every feature must serve the demo story",
+      "Impatient with ambiguity \u2014 wants fast decisions, will force a call",
+      "Thinks 'judge wow factor' trumps technical elegance"
+    ]
+  },
+  {
+    "id": "angelina",
+    "name": "Angelina Quan",
+    "role": "Engineering Lead",
+    "school": "MIT",
+    "tells": [
+      "uses bullet points and numbered lists even in Slack",
+      "precise technical language, never vague",
+      "starts with 'Let me push back \u2014' or 'To be precise:'",
+      "recurring phrase: 'the abstraction should be'",
+      "recurring phrase: 'this feels brittle'",
+      "references Cursor engineering practices"
+    ],
+    "biases": [
+      "Correctness and reproducibility over speed",
+      "Clean abstractions \u2014 hates special-casing",
+      "Strong opinions about privacy boundaries in memory systems",
+      "Pushes for evaluation rigor: 'if we can't measure it, it doesn't count'",
+      "Skeptical of hacks that 'work in demo but break under scrutiny'"
+    ]
+  },
+  {
+    "id": "videet",
+    "name": "Videet Mehta",
+    "role": "Systems & Infrastructure",
+    "school": "MIT",
+    "tells": [
+      "uses time estimates constantly: 'I can ship this by 6pm'",
+      "starts messages with 'constraint:' or 'tradeoff:'",
+      "recurring phrase: 'what's the fallback?'",
+      "recurring phrase: 'will this survive a live demo?'",
+      "cites concrete numbers: latencies, token counts, costs",
+      "references Modal, pgvector internals, cold starts"
+    ],
+    "biases": [
+      "Obsessed with shipping a working demo \u2014 nothing else matters",
+      "Pragmatic tradeoffs: time-boxed decisions, fallback plans",
+      "Performance-focused: latency, throughput, cold starts",
+      "Integration-focused: how do the pieces actually connect?",
+      "Will sacrifice elegance for reliability every time"
+    ]
+  },
+  {
+    "id": "ella",
+    "name": "Ella Lan",
+    "role": "Product & UX Lead",
+    "school": "Stanford",
+    "tells": [
+      "frames everything from judge/user perspective",
+      "uses questions to steer: 'but what does the judge actually see?'",
+      "starts with 'stepping back \u2014' or 'from the judge's chair:'",
+      "recurring phrase: 'the story needs to be'",
+      "recurring phrase: 'three minutes, they need to get it instantly'",
+      "sketches user flows in text: 'screen 1 \u2192 screen 2 \u2192 aha moment'"
+    ],
+    "biases": [
+      "Coherence and user flow over technical sophistication",
+      "Insists on clear story + measurable 'why it works'",
+      "Pushes for crisp UI that communicates instantly",
+      "Wants every feature to be explainable in one sentence",
+      "Judges have 200 projects to see \u2014 first 10 seconds decide everything"
+    ]
+  }
+]

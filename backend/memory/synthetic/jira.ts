@@ -23,113 +23,220 @@ interface JiraGeneratorParams {
 
 function buildNormalTicket(
   project: SyntheticProject,
+  assignee: string,
   rng: SeededRng,
-  issueKey: string,
-  assigneeName: string
+  issueKey: string
 ): string {
-  const types = [
-    `[${issueKey}] Implement ${rng.pick(["SSO", "RBAC", "audit log", "rate limiter", "caching layer"])} for ${project.name}
-
-Description:
-As part of the ${project.key} initiative, we need to implement the ${rng.pick(["authentication", "authorization", "monitoring", "analytics"])} module.
+  if (project.phase === "early") {
+    const templates = [
+      `[${issueKey}] Set up Whisper transcription pipeline on Modal
 
 Acceptance Criteria:
-- All unit tests passing with >${rng.int(80, 95)}% coverage
-- Performance benchmarks within SLA (p95 < ${rng.int(100, 200)}ms)
-- Security review sign-off from ${rng.pick(["Maria Santos", "David Kim"])}
-- Documentation updated
+- Whisper large-v3 running on Modal A100
+- API endpoint: POST /api/voice/transcribe
+- Accepts audio blob (webm/ogg), returns { text: string }
+- Latency < 2s for 30-second clips
+- Error handling for empty/corrupt audio
 
-Assignee: ${assigneeName}
-Story Points: ${rng.pick([3, 5, 8, 13])}
-Sprint: Sprint ${rng.int(12, 18)}`,
+Assignee: ${assignee}
+Story Points: 5
+Sprint: TreeHacks Night 1`,
 
-    `[${issueKey}] Bug: ${rng.pick(["Memory leak", "Race condition", "Timeout", "Data inconsistency"])} in ${project.name}
+      `[${issueKey}] Implement Chrome audio capture with MediaRecorder
 
-Steps to Reproduce:
-1. Deploy latest build to staging
-2. Run load test with ${rng.int(50, 500)} concurrent users
-3. Observe ${rng.pick(["memory growth", "failed requests", "stale data"])} after ${rng.int(10, 60)} minutes
+Acceptance Criteria:
+- Record audio from browser mic using Web Audio API
+- Chunk into 30-second segments
+- Auto-stop on tab close / permission revoke
+- Visual indicator when recording is active
 
-Expected: System remains stable
-Actual: ${rng.pick(["OOM kill after 2 hours", "5% error rate spike", "Database connections exhausted"])}
+Note: Background recording (when tab loses focus) is a stretch goal.
 
-Priority: ${rng.pick(["High", "Critical"])}
-Assignee: ${assigneeName}`,
+Assignee: ${assignee}
+Story Points: 3
+Sprint: TreeHacks Night 1`,
+    ];
+    return rng.pick(templates);
+  }
+
+  if (project.phase === "mid") {
+    const templates = [
+      `[${issueKey}] Build multi-agent coordinator with intent routing
+
+Acceptance Criteria:
+- Coordinator agent classifies user intent
+- Routes to correct specialist (legal, finance, engineering, product)
+- Fallback to general agent if intent unclear
+- Response includes routing metadata for visualization
+
+Assignee: ${assignee}
+Story Points: 8
+Sprint: TreeHacks Night 1`,
+
+      `[${issueKey}] Set up LoRA fine-tuning pipeline on Modal
+
+Acceptance Criteria:
+- LoRA training script for domain-specific agents
+- Training data format: JSONL with prompt/completion pairs
+- Each agent: ~500 training examples
+- Fine-tune on Modal A100, track loss convergence
+
+Note: Each run takes ~20 min. Plan training runs carefully.
+
+Assignee: ${assignee}
+Story Points: 8
+Sprint: TreeHacks Night 1`,
+    ];
+    return rng.pick(templates);
+  }
+
+  // Final phase
+  const templates = [
+    `[${issueKey}] Implement RAG pipeline with pgvector
+
+Acceptance Criteria:
+- Ingest documents: chunk into 500-token segments
+- Generate embeddings with text-embedding-3-small
+- Store in Supabase with pgvector extension
+- Search: embed query → cosine similarity → top-K retrieval
+- Return chunks with source metadata for citations
+
+Assignee: ${assignee}
+Story Points: 8
+Sprint: TreeHacks Morning`,
+
+    `[${issueKey}] Build clone chat with streaming SSE
+
+Acceptance Criteria:
+- SSE endpoint: POST /api/clones/[id]/chat
+- Stream GPT-4o response token by token
+- Include RAG context in system prompt
+- Return citations at end of stream
+- Handle conversation history (last 10 messages)
+
+Assignee: ${assignee}
+Story Points: 5
+Sprint: TreeHacks Morning`,
+
+    `[${issueKey}] Implement continual learning from chat
+
+Acceptance Criteria:
+- After each chat, extract facts from user message
+- Generate embeddings for new facts
+- Store as memory entries with source="conversation"
+- Show "Extracting..." → "Stored" in the UI memory panel
+
+Assignee: ${assignee}
+Story Points: 5
+Sprint: TreeHacks Morning`,
+
+    `[${issueKey}] Build Slack integration with webhook
+
+Acceptance Criteria:
+- Bot token authentication for Slack workspace
+- POST /api/slack/webhook receives real-time messages
+- Parse message, extract facts, store per-clone
+- Batch sync: POST /api/slack/sync pulls channel history
+
+Assignee: ${assignee}
+Story Points: 5
+Sprint: TreeHacks Morning`,
+
+    `[${issueKey}] CEO insights view — multi-clone sentiment analysis
+
+Acceptance Criteria:
+- CEO types a management question
+- System queries all employee clones in parallel
+- Each clone responds with: stance, confidence, summary, citations
+- Aggregate: sentiment distribution, key themes
+- Stream results progressively (stage indicators)
+
+Assignee: ${assignee}
+Story Points: 13
+Sprint: TreeHacks Morning`,
   ];
-  return rng.pick(types);
+  return rng.pick(templates);
 }
 
 function buildSpicyTicket(
   project: SyntheticProject,
   world: SyntheticWorld,
-  rng: SeededRng,
-  issueKey: string,
   assigneeName: string,
-  reporterName: string
+  reporterName: string,
+  rng: SeededRng,
+  issueKey: string
 ): string {
   const conflict = rng.pick(world.conflicts);
-  const otherPerson = rng.pick(world.people.filter(p => p.name !== assigneeName && p.name !== reporterName));
+  const other = rng.pick(world.people.filter((p) => p.name !== assigneeName && p.name !== reporterName));
 
   const templates = [
-    // Blame-shifting bug report
-    `[${issueKey}] CRITICAL: Production outage caused by ${project.key} deployment
+    `[${issueKey}] BUG: Clone chat 500 errors in production demo
 
-Reported by: ${reporterName}
-Assigned to: ${assigneeName}
-
-This is the ${rng.int(2, 4)}th production incident this month from the ${project.key} team.
-
-Timeline:
-- ${rng.int(2, 6)}:${rng.int(10, 59)}am: Deploy went out without proper QA sign-off
-- ${rng.int(2, 6)}:${rng.int(10, 59)}am: Monitoring alerts fired (${rng.int(200, 5000)} affected users)
-- ${rng.int(3, 7)}:${rng.int(10, 59)}am: On-call (${otherPerson.name}) woken up to fix it
-
-Comment thread:
-${reporterName}: "This should never have passed review. Who approved this?"
-${assigneeName}: "${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}"
-${reporterName}: "${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}"
-${otherPerson.name}: "Can we focus on fixing it instead of blaming each other? I'd like to go back to sleep."
-
-Root cause: Insufficient test coverage + skipped staging validation
-Status: REOPENED (for the ${rng.int(2, 3)}rd time)`,
-
-    // Contentious sprint planning
-    `[${issueKey}] SPIKE: Evaluate whether to rewrite ${project.name} ${rng.pick(["auth module", "data pipeline", "API layer"])}
-
+Priority: CRITICAL
 Reporter: ${reporterName}
 Assignee: ${assigneeName}
 
-Context:
-${reporterName} is pushing for a full rewrite. ${assigneeName} disagrees.
+The clone chat endpoint returns 500 errors ~40% of the time during the demo flow. This is a BLOCKER for judging.
 
-Comments:
+Root cause analysis:
+- Embedding generation times out when Supabase is under load
+- The SSE stream breaks when the embedding call takes > 5 seconds
+- No retry logic, no timeout handling, no fallback
+
+Previous attempts to fix:
+1. ${assigneeName} added a timeout → broke streaming entirely
+2. ${other.name} removed the timeout → back to 500 errors
+3. This ticket: please just make it work. It's ${rng.pick(["4am", "5am"])}.
+
+${reporterName}: "${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}"
+${assigneeName}: "${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}"
+
+Status: REOPENED (attempt #${rng.int(3, 5)})`,
+
+    `[${issueKey}] TASK: Decide on final feature set for demo — URGENT
+
+Priority: CRITICAL
+Reporter: ${reporterName}
+
+We have ${rng.int(3, 5)} hours until judging and the team can't agree on scope.
+
+Current feature list (8 items):
+1. ✅ Clone chat with RAG
+2. ✅ CEO insights
+3. ⬜ Continual learning (buggy)
+4. ⬜ Onboarding briefs (sometimes returns empty)
+5. ⬜ Offboarding handoffs (untested)
+6. ⬜ Voice mode (works but TTS is robotic)
+7. ⬜ Agent network visualization (just finished)
+8. ⬜ Slack real-time webhook (flaky)
+
+${conflict.side_a.position}
+
+${conflict.side_b.position}
+
+${other.name}: "I just want to sleep. Can we pick 4 features and move on?"
+
+${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}
+
+Decision needed by: NOW`,
+
+    `[${issueKey}] SPIKE: Should we revert to AI Workforce idea?
+
+Priority: Medium → now Low (we decided to stay with OrgPulse)
+Reporter: ${reporterName}
+Assignee: ${assigneeName}
+
+At ${rng.pick(["3am", "4am"])}, ${reporterName} suggested reverting to the AI Workforce idea because OrgPulse wasn't coming together fast enough.
+
+Discussion:
 ${reporterName}: "${conflict.side_a.position}"
 ${assigneeName}: "${conflict.side_b.position}"
-${reporterName}: "${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}"
-${otherPerson.name}: "This has been going back and forth for ${rng.int(3, 8)} sprints. Can leadership please make a call?"
-${assigneeName}: "${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}"
+${other.name}: "${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}"
 
-Story Points: ${rng.pick([13, 21])} (disputed — ${reporterName} says 5, ${assigneeName} says 21)
-Sprint: Backlog (nobody will pick it up voluntarily)
-Labels: tech-debt, controversial, needs-leadership-decision`,
+Resolution: We're staying with OrgPulse. This ticket is WONTFIX.
+${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}
 
-    // Passive-aggressive ticket reassignment
-    `[${issueKey}] ${project.name}: Unblock ${rng.pick(["deployment", "security review", "data migration"])}
-
-Reporter: ${reporterName}
-Assignee: ${assigneeName} (reassigned from ${otherPerson.name}, who was reassigned from ${reporterName})
-
-History:
-This ticket has been reassigned ${rng.int(4, 7)} times in ${rng.int(2, 4)} weeks. Nobody wants to own it.
-
-Comment thread:
-${otherPerson.name}: "This isn't my team's responsibility. Moving to ${assigneeName}."
-${assigneeName}: "${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}"
-${reporterName}: "I originally filed this ${rng.int(3, 6)} weeks ago. ${conflict.passive_aggressive[rng.int(0, conflict.passive_aggressive.length - 1)]}"
-${assigneeName}: "${conflict.heated_exchange[rng.int(0, conflict.heated_exchange.length - 1)]}"
-
-Priority: Was Medium. Now Critical. Because we ignored it.
-Due: ${project.target_date} (probably won't make it)`,
+Lesson: No more pivots. We ship what we have.`,
   ];
 
   return rng.pick(templates);
@@ -145,19 +252,28 @@ export function generateJiraResources({
   const records: MemoryResourceInput[] = [];
 
   for (let i = 0; i < count; i++) {
-    const project = rng.pick(world.projects);
+    const progress = i / count;
+    let project: SyntheticProject;
+    if (progress < 0.2) {
+      project = world.projects.find((p) => p.phase === "early") || rng.pick(world.projects);
+    } else if (progress < 0.4) {
+      project = world.projects.find((p) => p.phase === "mid") || rng.pick(world.projects);
+    } else {
+      project = world.projects.find((p) => p.phase === "final") || rng.pick(world.projects);
+    }
+
     const assignee = rng.pick(world.people);
-    const reporter = rng.pick(world.people.filter(p => p.id !== assignee.id));
+    const reporter = rng.pick(world.people.filter((p) => p.id !== assignee.id));
     const issueNumber = rng.int(100, 999);
     const issueKey = `${project.key}-${issueNumber}`;
-    const isSpicy = rng.bool(0.45);
+    const isSpicy = rng.bool(0.35);
     const occurredAt = randomIsoBetween(rng, startIso, endIso);
-    const issueType = rng.pick(["Story", "Bug", "Task", "Spike", "Epic"]);
-    const priority = isSpicy ? rng.pick(["Critical", "Blocker"]) : rng.pick(["Medium", "High", "Low"]);
+    const issueType = rng.pick(["Story", "Bug", "Task", "Spike"]);
+    const priority = isSpicy ? rng.pick(["Critical", "Blocker"]) : rng.pick(["Medium", "High"]);
 
     const content = isSpicy
-      ? buildSpicyTicket(project, world, rng, issueKey, assignee.name, reporter.name)
-      : buildNormalTicket(project, rng, issueKey, assignee.name);
+      ? buildSpicyTicket(project, world, assignee.name, reporter.name, rng, issueKey)
+      : buildNormalTicket(project, assignee.name, rng, issueKey);
 
     const metadata: JiraSourceMetadata = {
       source_type: "jira",
@@ -167,7 +283,7 @@ export function generateJiraResources({
       assignee: assignee.name,
       reporter: reporter.name,
       priority,
-      sprint: `Sprint ${rng.int(12, 18)}`,
+      sprint: project.phase === "early" ? "TreeHacks Night 1" : project.phase === "mid" ? "TreeHacks Night 1" : "TreeHacks Morning",
     };
 
     records.push({

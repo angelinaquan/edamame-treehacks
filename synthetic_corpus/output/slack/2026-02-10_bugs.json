@@ -1,0 +1,41 @@
+[
+  {
+    "id": "msg-036",
+    "channel": "bugs",
+    "author": "angelina",
+    "text": "BUG REPORT \u2014 citation attribution error\n\nSeverity: CRITICAL\nDiscovered during eval testing.\n\nSteps to reproduce:\n1. Ask Marcus's clone: \"what do you think about the launch timeline?\"\n2. Clone responds with citation [2] pointing to a Slack message\n3. The cited message is FROM SARAH, not Marcus\n\nRoot cause hypothesis: the pgvector search query doesn't include a WHERE clone_id filter. The clone is searching the GLOBAL memory space, not just its own memories.\n\nThis is the exact bug I warned about in day 4. ref: dec-010.\n\nAssigning to Videet \u2014 this is in the retrieval layer.",
+    "references": {
+      "decisions": [
+        "dec-012"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-10T18:03:20"
+  },
+  {
+    "id": "msg-037",
+    "channel": "bugs",
+    "author": "videet",
+    "text": "confirmed. the WHERE clause is missing. I thought I added it on day 4 but it only got added to the chunk search, not the fact search. the fact retrieval path is still unfiltered.\n\nfixing now. also adding a test that verifies clone_id isolation \u2014 every returned memory must belong to the querying clone.\n\nETA: 1 hour.",
+    "references": {
+      "decisions": [
+        "dec-012"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-10T18:34:37"
+  },
+  {
+    "id": "msg-038",
+    "channel": "bugs",
+    "author": "james",
+    "text": "this is exactly the kind of bug that kills a demo. imagine the judge asks James's clone a question and it cites something Ella said. instant credibility loss.\n\nAngelina \u2014 can we add a post-retrieval validation step? after reranking, verify that every returned chunk actually belongs to the right clone. belt AND suspenders.",
+    "references": {
+      "decisions": [
+        "dec-012"
+      ]
+    },
+    "thread_id": "msg-037",
+    "timestamp": "2026-02-10T18:58:22"
+  }
+]

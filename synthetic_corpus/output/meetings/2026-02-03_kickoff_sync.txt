@@ -1,0 +1,17 @@
+Meeting: Kickoff sync
+Date: 2026-02-03
+Attendees: James Liu, Angelina Quan, Videet Mehta, Ella Lan
+References: {"decisions": ["dec-001"]}
+============================================================
+
+[00:00] James: OK let's lock the idea. AI-native memory layer with digital twin clones. Everyone in?
+[00:15] Angelina: In, but I want to define the memory abstraction precisely before we write any code. What counts as a memory? What's the retrieval contract?
+[00:35] Videet: In. I can have Supabase + pgvector running by tonight. What embedding model are we using?
+[00:45] James: text-embedding-3-small. Fast, cheap, good enough. We're not fine-tuning, we're shipping.
+[00:55] Angelina: "Good enough" isn't a metric. Can we at least benchmark small vs large on 50 test queries before committing?
+[01:10] Videet: I'll run the benchmark tonight. Constraint: large is 3x the latency and 2x the storage. For real-time chat, that matters.
+[01:25] Ella: Stepping back — what's the demo story? Judges have 3 minutes. What are the 4 screens they see?
+[01:40] James: 1) CEO asks the org a question — multi-clone sentiment. 2) Drill into one clone — 1:1 chat with citations. 3) Live learning — Slack message appears, clone learns it. 4) Onboarding brief — practical enterprise value.
+[02:00] Ella: That's a good arc. Org-wide → personal → real-time → actionable. Each screen is one sentence to explain.
+[02:15] Angelina: Agreed on the flow. But we need eval metrics for each screen. If we can't measure retrieval quality, we're just hoping it works.
+[02:30] James: Fine — Angelina owns eval. Videet owns infra. Ella owns product/UX. I'll own the demo narrative and RAG pipeline. Let's go.

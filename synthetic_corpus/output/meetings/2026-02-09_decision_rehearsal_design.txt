@@ -1,0 +1,14 @@
+Meeting: Decision rehearsal design
+Date: 2026-02-09
+Attendees: James Liu, Angelina Quan, Videet Mehta, Ella Lan
+References: {"decisions": ["dec-009"]}
+============================================================
+
+[00:00] James: I want to pitch the two-round decision rehearsal. This is the feature that wins us the hackathon.
+[00:15] James: Round 1: each clone gives independent stance. Round 2: they see each other's positions and can update. Show the diff. AI agents actually deliberating.
+[00:35] Videet: Constraint: that's 8 LLM calls per query. Round 1 is parallelizable (4 calls, ~3 sec). Round 2 depends on round 1 results. Total: ~15 seconds.
+[00:55] Ella: But what does the judge see during 15 seconds of waiting? A spinner? That's death.
+[01:10] Angelina: I can make the wait visual. Agent topology lights up, particles fly between nodes showing cross-influence. The waiting becomes the show.
+[01:25] Ella: That's good. The judge watches the AI system think. Can we stream round-1 responses as they arrive? Each clone's answer appears as soon as it's ready.
+[01:40] Videet: Yes — round 1 responses stream in via Promise.allSettled. Round 2 can also be parallelized since each clone only needs its own round-1 answer + the others.
+[01:55] James: So total latency drops to ~6-7 seconds with full parallelization? That's acceptable. Ship it. ref: dec-009.

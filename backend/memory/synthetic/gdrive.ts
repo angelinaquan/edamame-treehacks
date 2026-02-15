@@ -226,11 +226,15 @@ Continual Learning Loop:
 
 Key Innovation: The memory layer is SOURCE-AGNOSTIC. Slack messages, Drive docs, emails, voice transcripts -- they all become the same thing: typed, embedded memory rows. The clone doesn't care where knowledge came from, it just searches semantically.
 
-Built by: ${world.people.map((p) => `${p.name} (${p.role})`).join(", ")}`,
+Built by:
+- James Liu (ML & Backend, Stanford — SAIL, MultiOn, TreeHacks organizer)
+- Ella Lan (Full-Stack, Stanford — Next.js, Supabase, integrations)
+- Angelina Quan (Product & Frontend, MIT — Cursor SWE intern, IOAI Gold, 2x USAMO)
+- Videet Mehta (ML Infra, MIT — HAN Lab, Sarvam AI, IOAI Gold)`,
       mime: "application/vnd.google-apps.document",
     },
     {
-      title: "OrgPulse - What We Learned From Pivoting",
+        title: "OrgPulse — What We Learned From Pivoting Twice",
       content: `What We Learned From Pivoting Twice at TreeHacks
 
 Timeline:

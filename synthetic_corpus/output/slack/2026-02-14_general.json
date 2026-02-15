@@ -1,0 +1,47 @@
+[
+  {
+    "id": "msg-051",
+    "channel": "general",
+    "author": "james",
+    "text": "FINAL DAY. demo is tonight. status check:\n\n@angelina: frontend?\n@videet: infrastructure?\n@ella: product flow?\n\nI need honest assessments. if something is broken, I'd rather cut it now than crash in front of judges.",
+    "references": {},
+    "thread_id": null,
+    "timestamp": "2026-02-14T23:03:03"
+  },
+  {
+    "id": "msg-052",
+    "channel": "general",
+    "author": "angelina",
+    "text": "Frontend status:\n- \u2705 Clone chat with streaming + citations + learning panel\n- \u2705 CEO insights with agent visualization + sentiment bars\n- \u2705 Knowledge base: onboarding briefs + memory explorer\n- \u2705 Dark theme: all components rethemed\n- \u2705 Agent topology: particles, glow effects, event stream\n- \u2705 Settings page: integration management\n\nKnown issues:\n- Memory explorer search is slow on first load (cold Supabase query). Pre-warming on page load.\n- Agent visualization sometimes flickers when 2 particles overlap. Minor cosmetic.\n\nOverall: frontend is solid. I've tested every flow.",
+    "references": {},
+    "thread_id": null,
+    "timestamp": "2026-02-14T23:24:19"
+  },
+  {
+    "id": "msg-053",
+    "channel": "general",
+    "author": "videet",
+    "text": "Infrastructure status:\n- \u2705 Supabase: stable, 20 connection pool, pgvector indexes partitioned\n- \u2705 Modal: 2 reranker replicas, Whisper endpoint, keep-alive pings active\n- \u2705 Embeddings: cached, batch support, 42ms avg latency\n- \u2705 Timeouts: all endpoints have fallback paths\n- \u2705 Backup video: recorded, 2:58 long, on James's laptop\n\nKnown risks:\n- Modal cold start: mitigated with keep-alive but not eliminated. first call after 10 min idle is still ~8 seconds.\n- Supabase free tier: 500 MB storage limit. we're at 380 MB. should be fine for demo.\n\nwill this survive a live demo? 90% confident yes. 10% is conference wifi.",
+    "references": {},
+    "thread_id": null,
+    "timestamp": "2026-02-14T23:53:23"
+  },
+  {
+    "id": "msg-054",
+    "channel": "general",
+    "author": "ella",
+    "text": "Product flow status:\n- \u2705 Demo script: rehearsed 3 times, timing is tight but works\n- \u2705 Narrative arc: org-wide \u2192 personal \u2192 live \u2192 practical\n- \u2705 Onboarding brief: live data, looks great\n- \u2705 Learning panel: fact extraction + storage visualization\n- \u2705 Slides: 3 slides (problem, live demo, tech stack)\n\nOne concern: in rehearsal, the live Slack learning moment took 6 seconds from message send to learning panel update. That's a long pause in a demo. Can we optimize?",
+    "references": {},
+    "thread_id": null,
+    "timestamp": "2026-02-15T00:25:47"
+  },
+  {
+    "id": "msg-055",
+    "channel": "general",
+    "author": "videet",
+    "text": "6 seconds breakdown:\n- Slack webhook receive: ~500ms\n- fact extraction (GPT-4o): ~2 seconds\n- embedding generation: ~800ms\n- Supabase insert: ~200ms\n- learning panel poll interval: ~2 seconds (worst case)\n\noptimization: reduce poll interval from 2s to 500ms. that saves up to 1.5 seconds of perceived latency. also, we can fire the extraction and embedding in parallel since they're independent.\n\nafter optimization: estimated 3.5-4 seconds. still visible but much better. shipping the fix now.",
+    "references": {},
+    "thread_id": null,
+    "timestamp": "2026-02-15T00:51:32"
+  }
+]

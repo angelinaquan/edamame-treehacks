@@ -1,0 +1,658 @@
+[
+  {
+    "id": "belief-001",
+    "person": "james",
+    "belief": "The demo narrative arc should be: org-wide \u2192 personal \u2192 real-time \u2192 actionable. Each screen is one sentence.",
+    "confidence": 0.95,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-014"
+      },
+      {
+        "type": "message",
+        "id": "msg-001"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-002",
+    "person": "james",
+    "belief": "5 polished features beats 8 broken ones. Cut aggressively.",
+    "confidence": 0.92,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-006"
+      }
+    ],
+    "topic": "mvp_scope"
+  },
+  {
+    "id": "belief-003",
+    "person": "james",
+    "belief": "The live Slack learning moment is the single most important demo beat \u2014 it proves the system is real, not mocked.",
+    "confidence": 0.9,
+    "evidence": [
+      {
+        "type": "message",
+        "id": "msg-001"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-004",
+    "person": "james",
+    "belief": "GraphRAG is a differentiator but not worth the implementation risk for a hackathon.",
+    "confidence": 0.75,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-005"
+      }
+    ],
+    "topic": "retrieval_design"
+  },
+  {
+    "id": "belief-005",
+    "person": "james",
+    "belief": "The two-round decision rehearsal is the feature that wins the hackathon \u2014 AI agents deliberating is novel.",
+    "confidence": 0.88,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-009"
+      }
+    ],
+    "topic": "features"
+  },
+  {
+    "id": "belief-006",
+    "person": "james",
+    "belief": "Onboarding briefs show enterprise value. Without it, we're 'just a chatbot.'",
+    "confidence": 0.85,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-015"
+      }
+    ],
+    "topic": "mvp_scope"
+  },
+  {
+    "id": "belief-007",
+    "person": "james",
+    "belief": "The hook needs to be personal and visceral, not abstract. 'Sarah quit and everything she knew is gone.'",
+    "confidence": 0.93,
+    "evidence": [
+      {
+        "type": "doc",
+        "id": "doc-demo"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-008",
+    "person": "james",
+    "belief": "Inline citations are the proof that the clone isn't hallucinating. Every answer needs evidence.",
+    "confidence": 0.87,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-011"
+      }
+    ],
+    "topic": "retrieval_design"
+  },
+  {
+    "id": "belief-009",
+    "person": "james",
+    "belief": "The pivot journey \u2014 ambient listener \u2192 AI workforce \u2192 memory layer \u2014 is a strength in the narrative, not a weakness.",
+    "confidence": 0.8,
+    "evidence": [
+      {
+        "type": "message",
+        "id": "msg-001"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-010",
+    "person": "james",
+    "belief": "Judges care about: 1) does the demo work, 2) is the problem real, 3) is the solution novel, 4) can you explain it in one sentence.",
+    "confidence": 0.95,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-001"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-011",
+    "person": "james",
+    "belief": "The reranker threshold of 0.7 might be too conservative \u2014 fewer citations makes responses look less grounded.",
+    "confidence": 0.6,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-013"
+      }
+    ],
+    "topic": "retrieval_design"
+  },
+  {
+    "id": "belief-012",
+    "person": "james",
+    "belief": "The category level in the memory hierarchy is worth building because it powers CEO insights.",
+    "confidence": 0.7,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-003"
+      }
+    ],
+    "topic": "memory_design"
+  },
+  {
+    "id": "belief-013",
+    "person": "angelina",
+    "belief": "Every retrieval query MUST include a clone_id filter. Cross-clone data leakage is a critical correctness failure.",
+    "confidence": 0.99,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-012"
+      },
+      {
+        "type": "decision",
+        "id": "dec-013"
+      },
+      {
+        "type": "doc",
+        "id": "doc-postmortem"
+      }
+    ],
+    "topic": "retrieval_design"
+  },
+  {
+    "id": "belief-014",
+    "person": "angelina",
+    "belief": "The reranker threshold must be 0.7. We don't compromise on correctness for aesthetics.",
+    "confidence": 0.97,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-013"
+      }
+    ],
+    "topic": "retrieval_design"
+  },
+  {
+    "id": "belief-015",
+    "person": "angelina",
+    "belief": "The memory hierarchy should be document \u2192 chunk \u2192 fact \u2192 category. Four levels, clean abstraction.",
+    "confidence": 0.92,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-003"
+      },
+      {
+        "type": "doc",
+        "id": "doc-schema"
+      }
+    ],
+    "topic": "memory_design"
+  },
+  {
+    "id": "belief-016",
+    "person": "angelina",
+    "belief": "If we can't measure it, it doesn't count. Every feature needs quantitative eval.",
+    "confidence": 0.95,
+    "evidence": [
+      {
+        "type": "doc",
+        "id": "doc-eval"
+      }
+    ],
+    "topic": "evaluation"
+  },
+  {
+    "id": "belief-017",
+    "person": "angelina",
+    "belief": "Half-built GraphRAG is worse than no GraphRAG. Either build it properly or don't build it.",
+    "confidence": 0.9,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-005"
+      }
+    ],
+    "topic": "retrieval_design"
+  },
+  {
+    "id": "belief-018",
+    "person": "angelina",
+    "belief": "Fact extraction needs a relevance filter \u2014 extracting from 'hi how are you' generates garbage.",
+    "confidence": 0.88,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-008"
+      }
+    ],
+    "topic": "continual_learning"
+  },
+  {
+    "id": "belief-019",
+    "person": "angelina",
+    "belief": "The unified memories table with type discriminators is the right schema design. Extensible without migrations.",
+    "confidence": 0.94,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-002"
+      },
+      {
+        "type": "doc",
+        "id": "doc-schema"
+      }
+    ],
+    "topic": "memory_design"
+  },
+  {
+    "id": "belief-020",
+    "person": "angelina",
+    "belief": "No stubs. Stubs become tech debt. Either build it properly or don't build it.",
+    "confidence": 0.91,
+    "evidence": [
+      {
+        "type": "meeting",
+        "id": "mtg-002"
+      }
+    ],
+    "topic": "engineering"
+  },
+  {
+    "id": "belief-021",
+    "person": "angelina",
+    "belief": "The postmortem shows engineering rigor. We should reference it if judges ask about reliability.",
+    "confidence": 0.85,
+    "evidence": [
+      {
+        "type": "doc",
+        "id": "doc-postmortem"
+      }
+    ],
+    "topic": "evaluation"
+  },
+  {
+    "id": "belief-022",
+    "person": "angelina",
+    "belief": "Test retrieval isolation early, not after building the whole chat UI.",
+    "confidence": 0.96,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-012"
+      }
+    ],
+    "topic": "engineering"
+  },
+  {
+    "id": "belief-023",
+    "person": "angelina",
+    "belief": "Partitioned pgvector indexes (separate for chunks and facts) are ~34% faster than unified indexes.",
+    "confidence": 0.88,
+    "evidence": [
+      {
+        "type": "doc",
+        "id": "doc-schema"
+      }
+    ],
+    "topic": "memory_design"
+  },
+  {
+    "id": "belief-024",
+    "person": "angelina",
+    "belief": "The agent visualization makes the deliberation phase visually compelling. Worth the 4-hour build.",
+    "confidence": 0.82,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-009"
+      }
+    ],
+    "topic": "features"
+  },
+  {
+    "id": "belief-025",
+    "person": "videet",
+    "belief": "text-embedding-3-small (1536d) is the right choice. Latency delta vs large is 80ms per call. For real-time chat, that compounds.",
+    "confidence": 0.93,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-004"
+      },
+      {
+        "type": "doc",
+        "id": "doc-retrieval"
+      }
+    ],
+    "topic": "retrieval_design"
+  },
+  {
+    "id": "belief-026",
+    "person": "videet",
+    "belief": "Modal cold starts are the #1 infrastructure risk. Keep-alive pings every 5 minutes mitigate but don't eliminate.",
+    "confidence": 0.9,
+    "evidence": [
+      {
+        "type": "doc",
+        "id": "doc-retrieval"
+      }
+    ],
+    "topic": "infrastructure"
+  },
+  {
+    "id": "belief-027",
+    "person": "videet",
+    "belief": "Async fact extraction is correct. Adding 800ms of sync latency to every response is unacceptable.",
+    "confidence": 0.92,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-008"
+      }
+    ],
+    "topic": "continual_learning"
+  },
+  {
+    "id": "belief-028",
+    "person": "videet",
+    "belief": "The reranker threshold eval showed 0.7 is the first value with zero wrong-clone citations. Data doesn't lie.",
+    "confidence": 0.95,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-013"
+      }
+    ],
+    "topic": "retrieval_design"
+  },
+  {
+    "id": "belief-029",
+    "person": "videet",
+    "belief": "GraphRAG is 2+ days of work for one person. Not worth it when plain RAG with reranking handles 90% of queries.",
+    "confidence": 0.88,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-005"
+      }
+    ],
+    "topic": "retrieval_design"
+  },
+  {
+    "id": "belief-030",
+    "person": "videet",
+    "belief": "Every endpoint needs a timeout with a fallback. The worst case should be degraded quality, not a crash.",
+    "confidence": 0.94,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-016"
+      }
+    ],
+    "topic": "infrastructure"
+  },
+  {
+    "id": "belief-031",
+    "person": "videet",
+    "belief": "Two Modal reranker replicas reduce concurrent query latency from 3.2s to 1.8s. Cost: $0.04/query. Worth it.",
+    "confidence": 0.9,
+    "evidence": [
+      {
+        "type": "doc",
+        "id": "doc-retrieval"
+      }
+    ],
+    "topic": "infrastructure"
+  },
+  {
+    "id": "belief-032",
+    "person": "videet",
+    "belief": "Partitioned pgvector indexes are 34% faster on chunk retrieval. Separate indexes for chunks and facts.",
+    "confidence": 0.91,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-002"
+      },
+      {
+        "type": "doc",
+        "id": "doc-schema"
+      }
+    ],
+    "topic": "memory_design"
+  },
+  {
+    "id": "belief-033",
+    "person": "videet",
+    "belief": "The backup video is insurance, not defeat. A crash is worse than switching to pre-recorded.",
+    "confidence": 0.87,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-016"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-034",
+    "person": "videet",
+    "belief": "Embedding cache (text_hash \u2192 embedding) eliminates redundant API calls for repeated queries.",
+    "confidence": 0.89,
+    "evidence": [
+      {
+        "type": "doc",
+        "id": "doc-retrieval"
+      }
+    ],
+    "topic": "infrastructure"
+  },
+  {
+    "id": "belief-035",
+    "person": "videet",
+    "belief": "The live Slack learning latency can be reduced from 6s to ~4s by parallelizing extraction and embedding.",
+    "confidence": 0.85,
+    "evidence": [
+      {
+        "type": "doc",
+        "id": "doc-demo"
+      }
+    ],
+    "topic": "infrastructure"
+  },
+  {
+    "id": "belief-036",
+    "person": "videet",
+    "belief": "Connection pool must be at least 20 for concurrent CEO insights queries. Free tier limit is the constraint.",
+    "confidence": 0.88,
+    "evidence": [
+      {
+        "type": "doc",
+        "id": "doc-schema"
+      }
+    ],
+    "topic": "infrastructure"
+  },
+  {
+    "id": "belief-037",
+    "person": "ella",
+    "belief": "The demo arc should be: org-wide \u2192 personal \u2192 real-time \u2192 actionable. Four acts, one story.",
+    "confidence": 0.95,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-014"
+      },
+      {
+        "type": "doc",
+        "id": "doc-demo"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-038",
+    "person": "ella",
+    "belief": "Judges have 3 minutes and 200 projects. The first 10 seconds decide everything.",
+    "confidence": 0.93,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-014"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-039",
+    "person": "ella",
+    "belief": "The learning panel is the visual payoff \u2014 it proves the clone is getting smarter in real-time.",
+    "confidence": 0.91,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-008"
+      }
+    ],
+    "topic": "features"
+  },
+  {
+    "id": "belief-040",
+    "person": "ella",
+    "belief": "Inline citation markers [1] [2] are familiar from Perplexity and ChatGPT. Judges expect them.",
+    "confidence": 0.88,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-011"
+      }
+    ],
+    "topic": "retrieval_design"
+  },
+  {
+    "id": "belief-041",
+    "person": "ella",
+    "belief": "Shared Google OAuth for Drive + Gmail is cleaner UX \u2014 one consent screen instead of two.",
+    "confidence": 0.9,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-007"
+      }
+    ],
+    "topic": "engineering"
+  },
+  {
+    "id": "belief-042",
+    "person": "ella",
+    "belief": "The onboarding brief feature might confuse the narrative. It's a different use case from clone chat.",
+    "confidence": 0.65,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-006"
+      }
+    ],
+    "topic": "mvp_scope"
+  },
+  {
+    "id": "belief-043",
+    "person": "ella",
+    "belief": "Every feature needs to be explainable in one sentence. If you can't explain it, judges won't understand it.",
+    "confidence": 0.92,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-001"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-044",
+    "person": "ella",
+    "belief": "The waiting time during decision rehearsal should be THE show, not dead air. Agent visualization fills the gap.",
+    "confidence": 0.87,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-009"
+      }
+    ],
+    "topic": "features"
+  },
+  {
+    "id": "belief-045",
+    "person": "ella",
+    "belief": "The hook needs to be personal: 'Sarah quit and everything she knew is gone.' Not abstract: 'organizations have a memory problem.'",
+    "confidence": 0.9,
+    "evidence": [
+      {
+        "type": "doc",
+        "id": "doc-demo"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-046",
+    "person": "ella",
+    "belief": "We should cut to 4 features, not 5. Tighter story, less risk.",
+    "confidence": 0.68,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-006"
+      }
+    ],
+    "topic": "mvp_scope"
+  },
+  {
+    "id": "belief-047",
+    "person": "ella",
+    "belief": "The live Slack learning moment is the 'aha' \u2014 the judge realizes the system is real, not a mockup.",
+    "confidence": 0.93,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-008"
+      }
+    ],
+    "topic": "demo_strategy"
+  },
+  {
+    "id": "belief-048",
+    "person": "ella",
+    "belief": "Conference wifi is unpredictable. All the engineering in the world doesn't help if the network drops.",
+    "confidence": 0.82,
+    "evidence": [
+      {
+        "type": "decision",
+        "id": "dec-016"
+      }
+    ],
+    "topic": "infrastructure"
+  }
+]

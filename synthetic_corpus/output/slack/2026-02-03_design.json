@@ -1,0 +1,11 @@
+[
+  {
+    "id": "msg-007",
+    "channel": "design",
+    "author": "ella",
+    "text": "first UI wireframe for the clone chat:\n\nleft panel: clone selector (avatar, name, role, expertise tags)\ncenter: chat interface (streaming messages, citation markers [1] [2])\nright: \"continual learning\" panel showing new facts being extracted in real-time\n\nthe right panel is KEY \u2014 it's the visual proof that the clone is getting smarter. judges need to see the system learning, not just responding.",
+    "references": {},
+    "thread_id": null,
+    "timestamp": "2026-02-03T18:08:27"
+  }
+]

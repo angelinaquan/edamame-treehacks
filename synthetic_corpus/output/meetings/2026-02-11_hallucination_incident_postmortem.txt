@@ -1,0 +1,15 @@
+Meeting: Hallucination incident postmortem
+Date: 2026-02-11
+Attendees: James Liu, Angelina Quan, Videet Mehta, Ella Lan
+References: {"decisions": ["dec-012", "dec-013"]}
+============================================================
+
+[00:00] Angelina: Postmortem. Marcus's clone cited Sarah's Slack message as its own knowledge. This is a critical correctness failure.
+[00:15] Videet: Root cause: I added the clone_id WHERE clause to searchChunks but missed searchFacts. Classic copy-paste bug.
+[00:30] Angelina: This is exactly why I keep saying "test retrieval isolation early." We caught it in eval, not in demo. We were lucky.
+[00:45] James: How do we make sure this never happens again?
+[01:00] Angelina: Three fixes: 1) clone_id filter on ALL retrieval paths, 2) raise reranker threshold from 0.4 to 0.7, 3) post-retrieval assertion that checks every returned memory belongs to the right clone.
+[01:20] James: 0.7 seems aggressive. Won't we lose citations?
+[01:30] Videet: I tested thresholds 0.4 through 0.7. At 0.7, precision@5 is 0.94 and wrong-clone citations are zero. Recall drops to 0.68 but every citation is correct. I'd rather have fewer correct citations than more wrong ones.
+[01:50] James: Fine. 0.7. But let's monitor — if responses feel too thin in the demo, we can drop to 0.6.
+[02:00] Angelina: No. 0.7. We don't compromise on correctness for aesthetics. ref: dec-013.

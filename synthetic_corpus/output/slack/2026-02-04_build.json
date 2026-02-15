@@ -1,0 +1,60 @@
+[
+  {
+    "id": "msg-008",
+    "channel": "build",
+    "author": "angelina",
+    "text": "To be precise: I'm proposing a four-level memory hierarchy.\n\n1. **document**: raw ingested content (a Slack channel dump, a Drive file)\n2. **chunk**: 500-token segment of a document, with its own embedding\n3. **fact**: atomic extracted claim (\"James prefers RAG over fine-tuning\"), with embedding + confidence score\n4. **category**: clustered summary across multiple facts (\"Team generally favors pragmatic approaches over novel ones\")\n\nRetrieval searches chunks (for grounded answers) and facts (for belief-level queries). Categories are for the CEO insights aggregation.\n\nref: dec-003",
+    "references": {
+      "decisions": [
+        "dec-003"
+      ],
+      "docs": [
+        "doc-schema"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-04T19:03:42"
+  },
+  {
+    "id": "msg-009",
+    "channel": "build",
+    "author": "james",
+    "text": "four levels feels over-engineered for a hackathon. do we really need 'category'? that's a clustering job we'd need to run periodically. can we ship with chunk + fact and add category as a stretch goal?\n\nhere's the thing \u2014 every hour we spend on abstraction elegance is an hour we don't spend on demo features. judges don't grade schema design.",
+    "references": {
+      "decisions": [
+        "dec-003"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-04T19:21:04"
+  },
+  {
+    "id": "msg-010",
+    "channel": "build",
+    "author": "angelina",
+    "text": "Counter: category is what powers the CEO insights view. When the CEO asks \"what does the team think about our timeline?\" \u2014 we need pre-aggregated theme clusters, not raw chunks. Without category, the insights view is just... a search bar.\n\nI'll implement it as a background job that runs after fact extraction. Lightweight k-means on fact embeddings, GPT summary per cluster. ~50 lines of code.\n\nThis is an abstraction worth having.",
+    "references": {
+      "decisions": [
+        "dec-003"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-04T19:57:40"
+  },
+  {
+    "id": "msg-011",
+    "channel": "build",
+    "author": "videet",
+    "text": "I benchmarked the partial index approach:\n- unified index (all memory_types): avg query 47ms on 5K rows\n- partitioned index (chunks only): avg query 31ms on 5K rows\n- delta: 16ms, ~34% faster for chunk retrieval\n\ngoing with partitioned. I'll create separate indexes for chunks and facts. categories don't need vector search \u2014 they're accessed by clone_id + topic.",
+    "references": {
+      "decisions": [
+        "dec-002"
+      ],
+      "docs": [
+        "doc-schema"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-04T20:23:22"
+  }
+]

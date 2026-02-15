@@ -1,0 +1,19 @@
+[
+  {
+    "id": "msg-039",
+    "channel": "bugs",
+    "author": "angelina",
+    "text": "POSTMORTEM: Wrong Citation Incident (dec-012)\n\n**What happened:** Marcus's clone cited a Slack message that was actually from Sarah Kim. The clone presented Sarah's opinion as Marcus's knowledge. This would be catastrophic in a demo.\n\n**Root cause:** Two retrieval paths in the codebase:\n1. `searchChunks()` \u2014 had WHERE clone_id filter \u2705\n2. `searchFacts()` \u2014 did NOT have WHERE clone_id filter \u274c\n\nFacts extracted from Sarah's conversations were returned when querying Marcus's clone because the fact retrieval was searching the global memory space.\n\n**Specific example:**\n- Query: \"What do you think about the auth module?\" (to Marcus's clone)\n- Retrieved fact: \"The auth module needs a complete rewrite\" (fact-id: fact-0847)\n- Source: Sarah Kim's Slack message in #build on Feb 6 (msg-089)\n- Marcus has never commented on the auth module\n\n**Fixes applied:**\n1. Added WHERE clone_id = $1 to `searchFacts()` \u2014 ref: dec-013\n2. Raised reranker threshold from 0.4 to 0.7 \u2014 ref: dec-013\n3. Added post-retrieval clone_id assertion (belt and suspenders)\n4. Added automated test: clone isolation check on 50 queries\n\n**Lessons learned:**\n- Test retrieval isolation early, not after building the whole chat UI\n- Every query path needs the same filters \u2014 don't assume code was ported correctly\n- The reranker threshold matters more than we thought \u2014 0.4 was letting through marginal matches\n\nref: doc-postmortem",
+    "references": {
+      "decisions": [
+        "dec-012",
+        "dec-013"
+      ],
+      "docs": [
+        "doc-postmortem"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-11T19:25:26"
+  }
+]

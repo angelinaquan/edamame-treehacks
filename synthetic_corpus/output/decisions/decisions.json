@@ -1,0 +1,274 @@
+[
+  {
+    "id": "dec-001",
+    "title": "Core demo thesis: AI-native memory layer with digital twin clones",
+    "proposer": "james",
+    "status": "accepted",
+    "rationale": "Memory loss is a universal org problem. Digital twins are visually compelling. RAG + embeddings is proven tech we can execute on in 12 days.",
+    "dissent": {
+      "angelina": "Need to define what 'memory' means precisely \u2014 episodic vs semantic vs procedural. Vague framing leads to vague architecture."
+    },
+    "follow_ups": [
+      "dec-002",
+      "doc-arch"
+    ],
+    "references": [],
+    "date": "2026-02-03"
+  },
+  {
+    "id": "dec-002",
+    "title": "Unified memories table with type discriminators over separate tables per source",
+    "proposer": "angelina",
+    "status": "accepted",
+    "rationale": "One table with (source_type, memory_type, embedding) columns. pgvector index on embedding. Simpler schema, source-agnostic queries, extensible without migrations.",
+    "dissent": {
+      "videet": "Worried about index bloat \u2014 mixing 500-token chunks and 1-sentence facts in the same vector space might hurt retrieval quality. Can we at least partition the IVFFlat index?"
+    },
+    "follow_ups": [
+      "doc-schema",
+      "dec-003"
+    ],
+    "references": [
+      "doc-arch"
+    ],
+    "date": "2026-02-04"
+  },
+  {
+    "id": "dec-003",
+    "title": "Memory type taxonomy: document \u2192 chunk \u2192 fact \u2192 category",
+    "proposer": "angelina",
+    "status": "accepted",
+    "rationale": "Four-level hierarchy: raw documents are chunked (500 tokens), facts are extracted (atomic claims), categories are clustered summaries. Each level has embeddings.",
+    "dissent": {
+      "james": "Four levels feels over-engineered for a hackathon. Do we really need 'category'? Can we ship with just chunk + fact?"
+    },
+    "follow_ups": [
+      "doc-schema"
+    ],
+    "references": [
+      "dec-002"
+    ],
+    "date": "2026-02-04"
+  },
+  {
+    "id": "dec-004",
+    "title": "text-embedding-3-small (1536d) over text-embedding-3-large (3072d)",
+    "proposer": "videet",
+    "status": "accepted",
+    "rationale": "Latency: 40ms vs 120ms per call. Storage: half the vector size. Quality delta is <2% on our eval set. For real-time chat, latency wins.",
+    "dissent": {
+      "angelina": "We haven't actually measured the quality delta on OUR data. '< 2%' is from OpenAI's benchmark, not org memory retrieval. Can we at least A/B test?"
+    },
+    "follow_ups": [
+      "dec-008"
+    ],
+    "references": [
+      "doc-arch"
+    ],
+    "date": "2026-02-05"
+  },
+  {
+    "id": "dec-005",
+    "title": "Plain RAG over GraphRAG-lite for MVP",
+    "proposer": "videet",
+    "status": "accepted",
+    "rationale": "GraphRAG requires entity extraction + relationship storage + graph traversal. That's 3 more components to build and debug. Plain RAG with reranking gets us 80% of the quality in 20% of the time.",
+    "dissent": {
+      "james": "GraphRAG would be a differentiator. Every other hackathon team does plain RAG. If we can show entity-relationship reasoning, judges will notice.",
+      "angelina": "If we do GraphRAG, we need proper entity resolution and deduplication. Half-built GraphRAG is worse than no GraphRAG."
+    },
+    "follow_ups": [
+      "doc-retrieval"
+    ],
+    "references": [
+      "dec-002",
+      "dec-004"
+    ],
+    "date": "2026-02-06"
+  },
+  {
+    "id": "dec-006",
+    "title": "MVP demo features: 5 not 8",
+    "proposer": "james",
+    "status": "accepted",
+    "rationale": "Cut: Jira sync, Notion sync, voice cloning. Keep: clone chat, CEO insights, continual learning, onboarding briefs, live Slack learning. 5 polished > 8 broken.",
+    "dissent": {
+      "ella": "I actually think we should cut to 4. The onboarding brief might confuse judges \u2014 it's a different use case from clone chat. Keep the story tight."
+    },
+    "follow_ups": [
+      "doc-demo"
+    ],
+    "references": [
+      "dec-001"
+    ],
+    "date": "2026-02-07"
+  },
+  {
+    "id": "dec-007",
+    "title": "Shared Google OAuth for Drive + Gmail (one consent screen)",
+    "proposer": "ella",
+    "status": "accepted",
+    "rationale": "One OAuth flow, one consent screen, both Drive and Gmail access. Better UX, less code, fewer tokens to manage.",
+    "dissent": {},
+    "follow_ups": [],
+    "references": [],
+    "date": "2026-02-07"
+  },
+  {
+    "id": "dec-008",
+    "title": "Continual learning: extract facts from every chat turn, embed, store",
+    "proposer": "james",
+    "status": "accepted",
+    "rationale": "After each user message, GPT-4o extracts atomic facts, generates embeddings, stores as memory_type='fact'. Clone gets smarter over time. This is the demo wow moment.",
+    "dissent": {
+      "angelina": "Extracting facts from every single message is noisy. 'Hi how are you' generates garbage facts. We need a relevance filter \u2014 minimum information density threshold.",
+      "videet": "Each extraction adds ~800ms to the response loop. Can we do it async? Fire-and-forget after the response streams."
+    },
+    "follow_ups": [
+      "dec-012"
+    ],
+    "references": [
+      "dec-003",
+      "doc-schema"
+    ],
+    "date": "2026-02-08"
+  },
+  {
+    "id": "dec-009",
+    "title": "Two-round decision rehearsal: independent stances \u2192 cross-influence \u2192 diff",
+    "proposer": "james",
+    "status": "accepted",
+    "rationale": "Round 1: each clone gives independent stance. Round 2: clones see each other's positions, can update. Show the DIFF. Judges see AI agents actually deliberating, not just parroting.",
+    "dissent": {
+      "ella": "This is confusing to explain in 30 seconds. 'The AIs argue with each other and change their minds' \u2014 can we make it visual? Like a before/after sentiment bar?",
+      "videet": "Two rounds means 2x the LLM calls per query. With 4 clones that's 8 calls. Latency will be 15-20 seconds. Can we parallelize round 1?"
+    },
+    "follow_ups": [
+      "doc-retrieval"
+    ],
+    "references": [
+      "dec-006"
+    ],
+    "date": "2026-02-09"
+  },
+  {
+    "id": "dec-010",
+    "title": "Reranking with cross-encoder before LLM context injection",
+    "proposer": "angelina",
+    "status": "accepted",
+    "rationale": "Top-20 from pgvector \u2192 cross-encoder reranker \u2192 top-5 injected into prompt. Reduces hallucination from irrelevant chunks. Cost: ~200ms extra latency.",
+    "dissent": {
+      "videet": "200ms is a lot when we're already at 3-4 seconds per response. Can we cache the reranking results for repeated queries?"
+    },
+    "follow_ups": [
+      "dec-013"
+    ],
+    "references": [
+      "dec-004",
+      "dec-005"
+    ],
+    "date": "2026-02-10"
+  },
+  {
+    "id": "dec-011",
+    "title": "Citation format: inline [Source N] markers with expandable footnotes",
+    "proposer": "ella",
+    "status": "accepted",
+    "rationale": "Clone responses include [1], [2] etc. Click to expand shows source snippet + metadata. Visual proof the AI isn't hallucinating. Judges love evidence.",
+    "dissent": {
+      "james": "Inline citations might clutter the response. Can we do a collapsible 'Sources' section at the bottom instead?"
+    },
+    "follow_ups": [],
+    "references": [
+      "dec-010"
+    ],
+    "date": "2026-02-11"
+  },
+  {
+    "id": "dec-012",
+    "title": "INCIDENT: Wrong citation in clone chat \u2014 chunk from wrong person attributed",
+    "proposer": "angelina",
+    "status": "resolved",
+    "rationale": "Root cause: clone_id filter was missing from the pgvector query. All clones searched the global memory space. Marcus's clone cited Sarah's Slack messages as its own knowledge.",
+    "dissent": {},
+    "follow_ups": [
+      "doc-postmortem",
+      "dec-013"
+    ],
+    "references": [
+      "dec-010",
+      "dec-008"
+    ],
+    "date": "2026-02-11"
+  },
+  {
+    "id": "dec-013",
+    "title": "Post-incident: add clone_id WHERE clause to ALL retrieval queries + raise reranker threshold to 0.7",
+    "proposer": "angelina",
+    "status": "accepted",
+    "rationale": "Two fixes: (1) every pgvector search now includes WHERE clone_id = $1, (2) reranker confidence threshold raised from 0.4 to 0.7 to filter marginal matches.",
+    "dissent": {
+      "james": "0.7 threshold might be too aggressive \u2014 we'll get fewer citations which makes responses look less grounded. Can we do 0.6?",
+      "videet": "I tested 0.5, 0.6, 0.7 on 20 test queries. 0.6 still lets through 2 wrong citations. 0.7 is clean. Going with 0.7."
+    },
+    "follow_ups": [
+      "doc-eval"
+    ],
+    "references": [
+      "dec-012",
+      "doc-postmortem"
+    ],
+    "date": "2026-02-12"
+  },
+  {
+    "id": "dec-014",
+    "title": "Demo order: CEO insights \u2192 clone chat \u2192 live Slack learning \u2192 onboarding brief",
+    "proposer": "ella",
+    "status": "accepted",
+    "rationale": "Open big (multi-agent sentiment), go personal (1:1 clone chat), go live (Slack message \u2192 clone learns), close practical (onboarding doc). Narrative arc: org-wide \u2192 personal \u2192 real-time \u2192 actionable.",
+    "dissent": {
+      "james": "I wanted to open with clone chat because it's the most intuitive. But Ella's arc is better \u2014 it builds from impressive to intimate to live to practical."
+    },
+    "follow_ups": [
+      "doc-demo"
+    ],
+    "references": [
+      "dec-006",
+      "dec-009"
+    ],
+    "date": "2026-02-13"
+  },
+  {
+    "id": "dec-015",
+    "title": "Onboarding packet as demo feature: auto-generated 'first week' doc for new hires",
+    "proposer": "ella",
+    "status": "accepted",
+    "rationale": "Pulls from memory layer: key people, recent decisions, risks, key docs. Shows practical enterprise value beyond just chatting. Judges want to see 'why would a company pay for this?'",
+    "dissent": {
+      "videet": "It's another API endpoint + frontend view to build in 3 days. Can we mock the data and just show the UI?",
+      "angelina": "If we mock it, someone will ask 'is this real data?' and we'll have to say no. Let's wire it to real memories or cut it."
+    },
+    "follow_ups": [
+      "doc-demo"
+    ],
+    "references": [
+      "dec-006"
+    ],
+    "date": "2026-02-13"
+  },
+  {
+    "id": "dec-016",
+    "title": "Backup plan: pre-recorded video if live demo crashes",
+    "proposer": "videet",
+    "status": "accepted",
+    "rationale": "Record a flawless run-through as .mp4. If Supabase goes down or Modal cold-starts, switch to video. Losing 'live demo' points is better than showing a crash.",
+    "dissent": {
+      "james": "I hate backup videos \u2014 judges always know. But Videet's right, a crash is worse. Record it but pray we don't need it."
+    },
+    "follow_ups": [],
+    "references": [
+      "dec-014"
+    ],
+    "date": "2026-02-14"
+  }
+]

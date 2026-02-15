@@ -1,0 +1,58 @@
+[
+  {
+    "id": "msg-022",
+    "channel": "general",
+    "author": "james",
+    "text": "alright let's get brutal about scope. here's my cut list:\n\nKEEP (demo-critical):\n1. Clone chat with RAG + citations \u2190 core experience\n2. CEO insights with multi-clone sentiment \u2190 differentiator\n3. Continual learning from chat \u2190 wow moment\n4. Live Slack learning (webhook) \u2190 \"it's REAL\" moment\n5. Onboarding brief generation \u2190 enterprise value proof\n\nCUT:\n- Jira integration (nice-to-have, not demo-critical)\n- Notion integration (same)\n- Voice clone mode (too risky \u2014 TTS quality is inconsistent)\n- GraphRAG (dec-005: already cut)\n- Offboarding handoff packs (cool but confuses the narrative)\n\n5 features. 7 days left. doable?",
+    "references": {
+      "decisions": [
+        "dec-006"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-07T19:56:50"
+  },
+  {
+    "id": "msg-023",
+    "channel": "general",
+    "author": "ella",
+    "text": "stepping back \u2014 I actually think we should cut to 4. here's why:\n\nthe onboarding brief is a DIFFERENT use case from clone chat. clone chat = \"talk to a person's AI twin.\" onboarding brief = \"auto-generate a document.\" mixing them in a 3-minute demo might confuse judges.\n\nthe story needs to be tight:\n1. ask the org a question (insights)\n2. drill into one person (clone chat)\n3. watch it learn live (Slack webhook)\n4. see the evidence (citations + learning panel)\n\nfour acts. one story. no detours.",
+    "references": {
+      "decisions": [
+        "dec-006"
+      ]
+    },
+    "thread_id": "msg-022",
+    "timestamp": "2026-02-07T20:23:07"
+  },
+  {
+    "id": "msg-024",
+    "channel": "general",
+    "author": "james",
+    "text": "counterpoint: the onboarding brief is the \"so what?\" moment. judges will think \"cool chatbot\" unless we show a concrete enterprise use case. \"when someone joins your company, OrgPulse generates their first-week briefing automatically\" \u2014 that's the pitch that makes VCs lean in.\n\nkeeping it. but ella's right about narrative focus \u2014 we'll show it LAST, as the \"and there's more\" closer. 30 seconds max.",
+    "references": {
+      "decisions": [
+        "dec-006",
+        "dec-015"
+      ]
+    },
+    "thread_id": "msg-022",
+    "timestamp": "2026-02-07T20:52:42"
+  },
+  {
+    "id": "msg-025",
+    "channel": "general",
+    "author": "angelina",
+    "text": "Fine with 5 features IF we have real eval metrics for each one. I'm tired of hackathon demos where everything \"works\" but nobody measured anything.\n\nMy proposal for eval plan:\n- Clone chat: measure retrieval precision@5 on 50 test queries\n- Insights: measure stance accuracy vs ground truth on 10 scenarios\n- Learning: measure fact extraction recall (did it capture the key info?)\n- Citations: measure attribution accuracy (is [1] actually the right source?)\n\nref: doc-eval",
+    "references": {
+      "decisions": [
+        "dec-006"
+      ],
+      "docs": [
+        "doc-eval"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-07T21:10:02"
+  }
+]

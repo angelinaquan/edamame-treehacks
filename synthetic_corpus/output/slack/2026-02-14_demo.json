@@ -1,0 +1,16 @@
+[
+  {
+    "id": "msg-056",
+    "channel": "demo",
+    "author": "james",
+    "text": "final rehearsal notes:\n\n1. HOOK works. \"Sarah quit and everything she knew is gone\" gets attention.\n2. CEO insights: agent visualization is incredible. judges visibly react when particles start flying.\n3. Clone chat: citations expand correctly. response quality is strong.\n4. Live learning: optimized to ~4 seconds. still a noticeable pause \u2014 fill it with narration (\"watch the learning panel on the right...\")\n5. Onboarding brief: generates in ~3 seconds. looks professional.\n6. Closing: \"living organizational memory\" \u2014 strong ending.\n\noverall time: 2:52. tight but within 3 minutes.\n\nwe're ready. let's go win this thing.",
+    "references": {
+      "decisions": [
+        "dec-014",
+        "dec-016"
+      ]
+    },
+    "thread_id": null,
+    "timestamp": "2026-02-14T19:55:18"
+  }
+]
