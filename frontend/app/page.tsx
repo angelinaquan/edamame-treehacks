@@ -1,45 +1,60 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Sidebar, type View } from "@/components/orgpulse/Sidebar";
-import { InsightsView } from "@/components/orgpulse/InsightsView";
-import { ClonesView } from "@/components/orgpulse/ClonesView";
-import { KnowledgeView } from "@/components/orgpulse/KnowledgeView";
+import { Sparkles, Users, Crown } from "lucide-react";
 
-export default function Home() {
-  const [activeView, setActiveView] = useState<View>("insights");
-  const [demoTriggerInsights, setDemoTriggerInsights] = useState(0);
-  const [demoTriggerClones, setDemoTriggerClones] = useState(0);
-  const [demoTriggerKnowledge, setDemoTriggerKnowledge] = useState(0);
-
-  const handleDemoMode = useCallback(() => {
-    if (activeView === "insights") {
-      setDemoTriggerInsights((c) => c + 1);
-    } else if (activeView === "clones") {
-      setDemoTriggerClones((c) => c + 1);
-    } else {
-      setDemoTriggerKnowledge((c) => c + 1);
-    }
-  }, [activeView]);
-
+export default function LandingPage() {
   return (
-    <div className="flex h-screen bg-white">
-      <Sidebar
-        activeView={activeView}
-        onViewChange={setActiveView}
-        onDemoMode={handleDemoMode}
-      />
-      <main className="flex-1 overflow-hidden">
-        <div className={activeView === "insights" ? "h-full" : "hidden"}>
-          <InsightsView demoTrigger={demoTriggerInsights} />
+    <div className="flex h-screen flex-col items-center justify-center bg-white">
+      {/* Logo */}
+      <div className="mb-10 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white">
+          <Sparkles size={22} />
         </div>
-        <div className={activeView === "clones" ? "h-full" : "hidden"}>
-          <ClonesView demoTrigger={demoTriggerClones} />
-        </div>
-        <div className={activeView === "knowledge" ? "h-full" : "hidden"}>
-          <KnowledgeView demoTrigger={demoTriggerKnowledge} />
-        </div>
-      </main>
+        <span className="text-[24px] font-semibold tracking-tight text-neutral-900">
+          OrgPulse
+        </span>
+      </div>
+
+      <h1 className="mb-2 text-[20px] font-semibold text-neutral-900">
+        Welcome back
+      </h1>
+      <p className="mb-10 text-[14px] text-neutral-500">
+        Choose your portal to get started.
+      </p>
+
+      <div className="flex gap-5">
+        {/* Employee Portal */}
+        <a
+          href="/employee"
+          className="group flex w-[260px] flex-col items-center rounded-2xl border border-neutral-200 bg-white p-8 text-center transition-all hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50"
+        >
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-100">
+            <Users size={28} />
+          </div>
+          <h2 className="mb-1.5 text-[16px] font-semibold text-neutral-900">
+            Employee
+          </h2>
+          <p className="text-[13px] leading-relaxed text-neutral-500">
+            Chat with your AI twin via text or voice. Manage your knowledge base.
+          </p>
+        </a>
+
+        {/* CEO Portal */}
+        <a
+          href="/ceo"
+          className="group flex w-[260px] flex-col items-center rounded-2xl border border-neutral-200 bg-white p-8 text-center transition-all hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-50"
+        >
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-100">
+            <Crown size={28} />
+          </div>
+          <h2 className="mb-1.5 text-[16px] font-semibold text-neutral-900">
+            CEO / Manager
+          </h2>
+          <p className="text-[13px] leading-relaxed text-neutral-500">
+            Query your organization. Get population-level insights from all employee twins.
+          </p>
+        </a>
+      </div>
     </div>
   );
 }
