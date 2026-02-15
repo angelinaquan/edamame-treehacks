@@ -17,7 +17,7 @@ import {
   ArrowRight,
   Bot,
 } from "lucide-react";
-import { getCloneProfiles, streamCloneChat } from "@/lib/orgpulse/api";
+import { getCloneProfiles, fetchCloneProfiles, streamCloneChat } from "@/lib/orgpulse/api";
 import type {
   ChatMessage,
   Citation,
@@ -221,8 +221,13 @@ interface ClonesViewProps {
 }
 
 export function ClonesView({ demoTrigger }: ClonesViewProps) {
-  const profiles = getCloneProfiles();
+  const [profiles, setProfiles] = useState(getCloneProfiles());
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Fetch real clone profiles from backend on mount
+  useEffect(() => {
+    fetchCloneProfiles().then((p) => setProfiles(p));
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [conversations, setConversations] = useState<
     Record<string, ChatMessage[]>
@@ -302,10 +307,16 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
       try {
         let accumulated = "";
         let cites: Citation[] = [];
+        // Pass conversation history for RAG context
+        const prevMessages = (conversations[selectedId] ?? []).map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
         const stream = streamCloneChat(
           selectedId,
           question,
-          controller.signal
+          controller.signal,
+          prevMessages
         );
         for await (const event of stream) {
           if (event.type === "chunk") {

@@ -6,6 +6,7 @@ import {
   Sparkles,
   Users,
   Zap,
+  Settings,
 } from "lucide-react";
 
 export type View = "insights" | "clones" | "knowledge";
@@ -73,8 +74,17 @@ export function Sidebar({ activeView, onViewChange, onDemoMode }: SidebarProps) 
         })}
       </nav>
 
-      {/* Demo mode button */}
-      <div className="border-t border-neutral-200 px-3 py-3">
+      {/* Bottom actions */}
+      <div className="border-t border-neutral-200 px-3 py-3 space-y-2">
+        <a
+          href="/settings"
+          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-800"
+        >
+          <span className="text-neutral-400">
+            <Settings size={18} />
+          </span>
+          Integrations
+        </a>
         <button
           onClick={onDemoMode}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 active:bg-indigo-800"

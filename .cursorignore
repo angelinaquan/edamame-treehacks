@@ -1,0 +1,14 @@
+!.env*
+!.gitignore
+!frontend/.env*
+!backend/.env*
+!modal/.env*
+!app/.env*
+!supabase/.env*
+!supabase/schema.sql
+!supabase/migrations/*.sql
+!supabase/migrations/*.sql.bk
+!supabase/migrations/*.sql.bk.2
+!supabase/migrations/*.sql.bk.3
+!supabase/migrations/*.sql.bk.4
+!supabase/migrations/*.sql.bk.5
