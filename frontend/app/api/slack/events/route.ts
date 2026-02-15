@@ -199,7 +199,7 @@ async function processSlackMessage(event: SlackMessageEvent): Promise<void> {
   // Continual learning: extract facts and save with dedup
   const convId = `slack_${channelId}_${event.ts || Date.now()}`;
   try {
-    const result = await learnFromConversation(cloneId, text, convId);
+    const result = await learnFromConversation(cloneId, text, convId, "slack");
     if (result.factsExtracted > 0) {
       console.log(
         `[slack-events] Learned from Slack: ${result.factsSaved} new facts, ${result.factsReinforced} reinforced`

@@ -465,7 +465,8 @@ export async function getKnowledgeContext(
 export async function learnFromConversation(
   cloneId: string,
   userMessage: string,
-  conversationId: string
+  conversationId: string,
+  source: string = "conversation"
 ): Promise<ConversationLearningResult> {
   const result: ConversationLearningResult = {
     factsExtracted: 0,
@@ -534,7 +535,7 @@ export async function learnFromConversation(
     const insertData: Record<string, unknown> = {
       clone_id: cloneId,
       type: "fact",
-      source: "conversation",
+      source,
       content: fact,
       confidence: 0.75,
       metadata: {
