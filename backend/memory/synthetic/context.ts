@@ -161,7 +161,7 @@ export function buildSyntheticWorld(
       notion_page_id: "ambient-listener-prd",
       jira_board_id: "AMBIENT-BOARD",
       gdrive_folder_id: "folder_ambient_ai",
-      target_date: "2026-02-16",
+      target_date: "2026-02-15 9:30 AM PT",
     },
     {
       key: "HEALTH",
@@ -172,7 +172,7 @@ export function buildSyntheticWorld(
       notion_page_id: "health-agent-spec",
       jira_board_id: "HEALTH-BOARD",
       gdrive_folder_id: "folder_health_agent",
-      target_date: "2026-02-16",
+      target_date: "2026-02-15 9:30 AM PT",
     },
     {
       key: "SELFIMP",
@@ -183,7 +183,7 @@ export function buildSyntheticWorld(
       notion_page_id: "self-improve-rfc",
       jira_board_id: "SELFIMP-BOARD",
       gdrive_folder_id: "folder_self_improve",
-      target_date: "2026-02-16",
+      target_date: "2026-02-15 9:30 AM PT",
     },
     {
       key: "RLENV",
@@ -194,7 +194,7 @@ export function buildSyntheticWorld(
       notion_page_id: "rl-framework-plan",
       jira_board_id: "RLENV-BOARD",
       gdrive_folder_id: "folder_rl_framework",
-      target_date: "2026-02-16",
+      target_date: "2026-02-15 9:30 AM PT",
     },
   ];
 
