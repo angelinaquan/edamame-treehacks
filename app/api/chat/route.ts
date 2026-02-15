@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import getOpenAIClient from "@/lib/openai";
 import { buildSystemPrompt } from "@/lib/agent";
-import {
-  getCloneById,
-  mockClones,
-  getActiveReminders,
-  mockMeetings,
-} from "@/lib/mock-data";
+import { mockClones, getActiveReminders, mockMeetings } from "@/lib/mock-data";
+import { getCloneRuntime } from "@/lib/clone-repository";
 import { canConsult, consultClone } from "@/lib/collaboration";
+import { getKnowledgeContext } from "@/lib/memory";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,12 +15,55 @@ export async function POST(request: NextRequest) {
       isProactiveDebrief = false,
     } = await request.json();
 
-    const clone = getCloneById(cloneId || "clone_self");
+    const runtime = await getCloneRuntime(cloneId || "clone_self");
+    const clone = runtime.clone;
     if (!clone) {
       return NextResponse.json({ error: "Clone not found" }, { status: 404 });
     }
 
-    const systemPrompt = buildSystemPrompt(clone);
+    const knowledge = await getKnowledgeContext(clone.id, message || "", 5);
+    const fallbackChunkFacts =
+      knowledge?.chunks.slice(0, 5).map((chunk) => `- ${chunk.content}`) || [];
+    const systemPrompt = buildSystemPrompt(
+      clone,
+      knowledge
+        ? {
+            owner: runtime.owner,
+            memories: knowledge.items
+              .slice(0, 8)
+              .map(
+                (item) =>
+                  `- ${item.fact} (confidence: ${item.confidence.toFixed(2)}, source: ${item.source_type})`
+              ),
+            slackMessages: knowledge.resources
+              .filter((resource) => resource.source_type === "slack")
+              .slice(0, 8)
+              .map(
+                (resource) =>
+                  `[slack] ${resource.title || "message"}: ${resource.content}`
+              ),
+            categorySummaries: knowledge.categories.map(
+              (category) =>
+                `- ${category.category_key}: ${category.summary} (confidence: ${category.confidence.toFixed(2)})`
+            ),
+            itemFacts: knowledge.items
+              .slice(0, 10)
+              .map((item) => `- ${item.fact}`)
+              .concat(
+                knowledge.items.length > 0 ? [] : fallbackChunkFacts.slice(0, 5)
+              ),
+            resourceHighlights: knowledge.resources
+              .filter((resource) => resource.source_type !== "slack")
+              .slice(0, 6)
+              .map(
+                (resource) =>
+                  `- [${resource.source_type}] ${resource.title || "resource"}: ${resource.content}`
+              ),
+          }
+        : {
+            owner: runtime.owner,
+          }
+    );
 
     const messages: {
       role: "system" | "user" | "assistant";
