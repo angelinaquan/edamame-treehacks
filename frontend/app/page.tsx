@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 
 const CEO_EMAIL = "ceo@gmail.com";
 
@@ -48,99 +48,70 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0f]">
-      {/* Gradient background */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 -top-40 h-[600px] w-[600px] rounded-full bg-indigo-600/20 blur-[120px]" />
-        <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-violet-600/15 blur-[100px]" />
-        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 rounded-full bg-blue-600/10 blur-[80px]" />
-      </div>
-
-      {/* Subtle grid overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
-      />
-
-      {/* Card */}
-      <div className="relative z-10 w-full max-w-[400px] px-4">
-        {/* Logo */}
-        <div className="mb-10 flex items-center justify-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/25">
-            <Sparkles size={22} />
-          </div>
-          <span className="text-[24px] font-semibold tracking-tight text-white">
-            OrgPulse
-          </span>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <div className="mb-7 text-center">
-            <h1 className="mb-1.5 text-[19px] font-semibold text-white">
-              Sign in to your workspace
-            </h1>
-            <p className="text-[13.5px] text-white/50">
-              Enter your email to continue.
-            </p>
-          </div>
-
-          {/* Google auth button */}
-          <button
-            onClick={handleGoogleAuth}
-            disabled={loading}
-            className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[14px] font-medium text-white/90 transition-all hover:bg-white/[0.1] hover:border-white/20 disabled:opacity-50"
-          >
-            <GoogleIcon />
-            Continue with Google
-          </button>
-
-          {/* Divider */}
-          <div className="mb-4 flex items-center gap-3">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className="text-[12px] font-medium text-white/30">OR</span>
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
-
-          {/* Email form */}
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setError("");
-                }}
-                placeholder="Business email*"
-                autoFocus
-                className="w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[14px] text-white placeholder:text-white/30 focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-              />
-              {error && (
-                <p className="mt-1.5 text-[12px] text-red-400">{error}</p>
-              )}
+    <div className="flex min-h-screen items-center justify-center bg-[#111113]">
+      <div className="w-full max-w-[420px] px-4">
+        {/* Card */}
+        <div className="rounded-2xl border border-[#2a2a2e] bg-[#19191d] px-8 pb-8 pt-10">
+          {/* Logo icon */}
+          <div className="mb-6 flex justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white">
+              <Sparkles size={20} />
             </div>
+          </div>
+
+          {/* Title */}
+          <h1 className="mb-1.5 text-center text-[20px] font-semibold text-white">
+            Sign in to OrgPulse
+          </h1>
+          <p className="mb-7 text-center text-[14px] text-[#888]">
+            Enter your email to continue.
+          </p>
+
+          {/* Email input */}
+          <form onSubmit={handleSubmit} className="mb-4">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError("");
+              }}
+              placeholder="Business email*"
+              autoFocus
+              className="mb-3 w-full rounded-lg border border-[#2a2a2e] bg-[#111113] px-4 py-3 text-[14px] text-white placeholder:text-[#555] focus:border-[#444] focus:outline-none"
+            />
+            {error && (
+              <p className="mb-2 text-[12px] text-red-400">{error}</p>
+            )}
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-[14px] font-medium text-white transition-all hover:bg-indigo-500 disabled:opacity-50 shadow-lg shadow-indigo-500/25"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-[14px] font-semibold text-black transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
             >
               {loading ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
-                <>
-                  Continue
-                  <ArrowRight size={16} />
-                </>
+                "Continue"
               )}
             </button>
           </form>
 
-          <p className="mt-5 text-center text-[11.5px] text-white/25">
-            Your workspace role is determined automatically.
-          </p>
+          {/* Divider */}
+          <div className="mb-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-[#2a2a2e]" />
+            <span className="text-[12px] font-medium text-[#555]">OR</span>
+            <div className="h-px flex-1 bg-[#2a2a2e]" />
+          </div>
+
+          {/* Google auth */}
+          <button
+            onClick={handleGoogleAuth}
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-3 rounded-lg border border-[#2a2a2e] bg-transparent px-4 py-3 text-[14px] font-medium text-[#ccc] transition-colors hover:border-[#444] hover:text-white disabled:opacity-50"
+          >
+            <GoogleIcon />
+            Continue with Google
+          </button>
         </div>
       </div>
     </div>
