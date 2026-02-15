@@ -104,11 +104,24 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Refs to avoid stale closures in recording callbacks
+  const isStreamingRef = useRef(false);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const modeRef = useRef(mode);
+  const startRecordingRef = useRef<() => void>(() => {});
+
+  // Keep refs in sync
+  useEffect(() => { isStreamingRef.current = isStreaming; }, [isStreaming]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
 
   // Load the employee's own twin clone based on email mapping
   useEffect(() => {
@@ -161,9 +174,49 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, streamingContent]);
 
+  // TTS: speak the assistant's response aloud
+  const speakText = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    try {
+      setIsPlayingAudio(true);
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      const res = await fetch("/api/voice/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error("TTS failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        setIsPlayingAudio(false);
+        URL.revokeObjectURL(url);
+        audioRef.current = null;
+        // Auto-start recording for the next turn in voice mode
+        if (modeRef.current === "voice") {
+          setTimeout(() => startRecordingRef.current(), 300);
+        }
+      };
+      audio.onerror = () => {
+        setIsPlayingAudio(false);
+        URL.revokeObjectURL(url);
+        audioRef.current = null;
+      };
+      await audio.play();
+    } catch {
+      setIsPlayingAudio(false);
+    }
+  }, []);
+
   const sendMessage = useCallback(
     async (question: string) => {
-      if (!profile || !question.trim() || isStreaming) return;
+      if (!profile || !question.trim() || isStreamingRef.current) return;
 
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
@@ -185,7 +238,7 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
       try {
         let accumulated = "";
         let cites: Citation[] = [];
-        const prevMessages = messages.map((m) => ({ role: m.role, content: m.content }));
+        const prevMessages = messagesRef.current.map((m) => ({ role: m.role, content: m.content }));
         const stream = streamCloneChat(
           profile.employee.id,
           question,
@@ -210,6 +263,11 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
           citations: cites.length > 0 ? cites : undefined,
         };
         setMessages((prev) => [...prev, assistantMsg]);
+
+        // Auto-speak in voice mode
+        if (modeRef.current === "voice" && accumulated.trim()) {
+          speakText(accumulated);
+        }
       } catch {
         // aborted
       }
@@ -218,7 +276,7 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
       setStreamingContent("");
       setStreamingCitations([]);
     },
-    [profile, isStreaming, messages]
+    [profile, speakText]
   );
 
   const handleSubmit = useCallback(
@@ -257,6 +315,13 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
         const blobType = chunksRef.current[0]?.type || mimeType;
         const audioBlob = new Blob(chunksRef.current, { type: blobType });
         setIsRecording(false);
+
+        // Guard: skip if no audio data was captured
+        if (audioBlob.size === 0) {
+          console.warn("[voice] Empty audio blob, skipping transcription");
+          return;
+        }
+
         setIsTranscribing(true);
 
         try {
@@ -286,8 +351,15 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
     }
   }, [sendMessage, selectedDeviceId]);
 
+  // Keep ref in sync so speakText's onended can call the latest version
+  useEffect(() => { startRecordingRef.current = startRecording; }, [startRecording]);
+
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
+      // Flush any buffered audio data before stopping to avoid empty blobs
+      if (mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.requestData();
+      }
       mediaRecorderRef.current.stop();
     }
   }, [isRecording]);
@@ -492,16 +564,20 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
             )}
             <button
               onClick={isRecording ? stopRecording : startRecording}
-              disabled={isStreaming || isTranscribing}
+              disabled={isStreaming || isTranscribing || isPlayingAudio}
               className={`flex h-16 w-16 items-center justify-center rounded-full transition-all ${
-                isRecording
+                isPlayingAudio
+                  ? "bg-gradient-to-br from-blue-500 to-violet-600 text-white shadow-lg shadow-blue-200 animate-pulse"
+                  : isRecording
                   ? "bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse"
                   : isTranscribing
                   ? "bg-amber-100 text-amber-600"
                   : "bg-neutral-900 text-white hover:bg-neutral-800 shadow-lg"
               }`}
             >
-              {isTranscribing ? (
+              {isPlayingAudio ? (
+                <Volume2 size={24} />
+              ) : isTranscribing ? (
                 <Loader2 size={24} className="animate-spin" />
               ) : isRecording ? (
                 <MicOff size={24} />
@@ -510,7 +586,9 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
               )}
             </button>
             <p className="text-[12px] text-neutral-500">
-              {isRecording
+              {isPlayingAudio
+                ? "Speaking…"
+                : isRecording
                 ? "Recording… tap to stop"
                 : isTranscribing
                 ? "Transcribing…"
