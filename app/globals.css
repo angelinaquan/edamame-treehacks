@@ -2,7 +2,18 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1a1a;
+  --muted: #737373;
+  --border: #e5e5e5;
+  --surface: #fafafa;
+  --accent: #6366f1;
+  --accent-light: #eef2ff;
+  --support: #10b981;
+  --support-light: #ecfdf5;
+  --neutral-stance: #f59e0b;
+  --neutral-stance-light: #fffbeb;
+  --oppose: #ef4444;
+  --oppose-light: #fef2f2;
 }
 
 @theme inline {
@@ -12,21 +23,54 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Slide down animation for notification banner */
-@keyframes slide-down {
+/* ---- Animations ---- */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.35s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.25s ease-out forwards;
+}
+
+@keyframes slideDown {
   from {
     opacity: 0;
     transform: translateY(-100%);
@@ -38,25 +82,35 @@ body {
 }
 
 .animate-slide-down {
-  animation: slide-down 0.4s ease-out;
+  animation: slideDown 0.4s ease-out;
 }
 
-/* Waveform animation */
-@keyframes waveform {
-  0% {
-    height: 4px;
-  }
-  50% {
-    height: 24px;
-  }
-  100% {
-    height: 8px;
-  }
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-/* Smooth scrollbar */
+.skeleton {
+  background: linear-gradient(90deg, #f5f5f5 25%, #e5e5e5 50%, #f5f5f5 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes pulseBar {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-bar {
+  animation: pulseBar 1.5s ease-in-out infinite;
+}
+
+/* ---- Scrollbar ---- */
+
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -64,17 +118,16 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #d4d4d8;
+  background-color: #d4d4d4;
   border-radius: 3px;
 }
 
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background-color: #3f3f46;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background-color: #a3a3a3;
 }
 
-/* Prose styling fixes */
+/* ---- Prose ---- */
+
 .prose ul,
 .prose ol {
   margin-top: 0.25em;
