@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listClonesForApi } from "@/lib/memory/clone-repository";
+import { listClonesForApi } from "@backend/memory/clone-repository";
 
 export async function GET() {
   const clones = await listClonesForApi();

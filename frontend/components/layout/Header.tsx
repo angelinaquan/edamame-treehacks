@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, Search } from "lucide-react";
-import { getActiveReminders } from "@/lib/memory/mock-data";
+import { getActiveReminders } from "@backend/memory/mock-data";
 
 interface HeaderProps {
   title?: string;

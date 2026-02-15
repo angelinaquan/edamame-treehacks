@@ -3,8 +3,8 @@ import {
   isSupabaseMemoryEnabled,
   runMonthlyRewind,
   runWeeklySummarization,
-} from "@/lib/memory";
-import { getMemoryProvider } from "@/lib/memory/flags";
+} from "@backend/memory";
+import { getMemoryProvider } from "@backend/memory/flags";
 
 type CompactionMode = "weekly" | "monthly" | "both";
 

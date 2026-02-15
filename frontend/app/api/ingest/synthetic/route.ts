@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { chunkText } from "@/lib/core/chunker";
-import { extractFacts } from "@/lib/memory";
-import { generateSyntheticResources } from "@/lib/memory/synthetic";
-import { validateSyntheticResources } from "@/lib/memory/synthetic/validate";
-import { getMemoryProvider, isSupabaseConfigured } from "@/lib/memory/flags";
-import { syncResourcesToMem0 } from "@/lib/memory/mem0";
+import { extractFacts } from "@backend/memory";
+import { generateSyntheticResources } from "@backend/memory/synthetic";
+import { validateSyntheticResources } from "@backend/memory/synthetic/validate";
+import { getMemoryProvider, isSupabaseConfigured } from "@backend/memory/flags";
+import { syncResourcesToMem0 } from "@backend/memory/mem0";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
 import type {
   DocType,

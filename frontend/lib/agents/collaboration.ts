@@ -1,9 +1,9 @@
 import type { Clone, CloneConsultation } from "@/lib/core/types";
-import { mockClones, mockMemories } from "@/lib/memory/mock-data";
+import { mockClones, mockMemories } from "@backend/memory/mock-data";
 import { buildSystemPrompt } from "./clone-brain";
-import { listClonesForApi } from "@/lib/memory/clone-repository";
+import { listClonesForApi } from "@backend/memory/clone-repository";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
-import { isSupabaseConfigured } from "@/lib/memory/flags";
+import { isSupabaseConfigured } from "@backend/memory/flags";
 
 const MAX_HOPS = 2;
 const MAX_CONSULTS_PER_QUESTION = 3;

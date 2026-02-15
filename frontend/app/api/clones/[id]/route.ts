@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCloneDetailForApi } from "@/lib/memory/clone-repository";
+import { getCloneDetailForApi } from "@backend/memory/clone-repository";
 
 export async function GET(
   _request: Request,

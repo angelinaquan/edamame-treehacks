@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import getOpenAIClient from "@/lib/agents/openai";
 import { buildSystemPrompt } from "@/lib/agents/clone-brain";
-import { getActiveReminders, mockMeetings } from "@/lib/memory/mock-data";
-import { getCloneRuntime } from "@/lib/memory/clone-repository";
+import { getActiveReminders, mockMeetings } from "@backend/memory/mock-data";
+import { getCloneRuntime } from "@backend/memory/clone-repository";
 import { canConsult, consultClone, listConsultableClones } from "@/lib/agents/collaboration";
-import { getKnowledgeContext } from "@/lib/memory";
+import { getKnowledgeContext } from "@backend/memory";
 
 export async function POST(request: NextRequest) {
   try {

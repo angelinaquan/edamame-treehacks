@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
-import { getKnowledgeContext } from "@/lib/memory";
-import { getMemoryProvider } from "@/lib/memory/flags";
+import { getKnowledgeContext } from "@backend/memory";
+import { getMemoryProvider } from "@backend/memory/flags";
 
 export async function POST(request: NextRequest) {
   try {

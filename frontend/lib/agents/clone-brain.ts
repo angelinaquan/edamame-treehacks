@@ -4,7 +4,7 @@ import {
   mockPeople,
   mockMemories,
   mockSlackMessages,
-} from "@/lib/memory/mock-data";
+} from "@backend/memory/mock-data";
 import type { Clone, Message } from "@/lib/core/types";
 
 export interface SystemPromptContext {
