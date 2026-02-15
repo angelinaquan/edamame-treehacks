@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const mockConversations = [
     {
       id: "1",
-      clone_name: "James Liu (Clone)",
+      clone_name: "James Liu",
       user_name: "Angelina Quan",
       last_message: "Should we go with the ambient listener or healthcare agent?",
       timestamp: "2 min ago",
@@ -41,7 +41,7 @@ export default function DashboardPage() {
     },
     {
       id: "2",
-      clone_name: "Ella Lan (Clone)",
+      clone_name: "Ella Lan",
       user_name: "Videet Mehta",
       last_message: "The self-improvement loop demo isn't working yet",
       timestamp: "15 min ago",
@@ -49,7 +49,7 @@ export default function DashboardPage() {
     },
     {
       id: "3",
-      clone_name: "Videet Mehta (Clone)",
+      clone_name: "Videet Mehta",
       user_name: "James Liu",
       last_message: "We need to cut scope. 18 hours left.",
       timestamp: "1 hour ago",
