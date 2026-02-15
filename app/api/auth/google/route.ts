@@ -14,12 +14,11 @@ export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
   if (!clientId || !clientSecret) {
-    return NextResponse.json(
-      {
-        error:
-          "Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local.",
-      },
-      { status: 500 }
+    // Redirect back to settings with an error message instead of raw JSON
+    return NextResponse.redirect(
+      `${baseUrl}/settings?google_error=${encodeURIComponent(
+        "Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local."
+      )}`
     );
   }
 
