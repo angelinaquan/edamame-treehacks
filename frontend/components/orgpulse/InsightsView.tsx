@@ -649,7 +649,7 @@ export function InsightsView({ demoTrigger }: InsightsViewProps) {
             ) : (
               <Play size={14} />
             )}
-            {isRunning ? "Analyzing\u2026" : "Run Analysis"}
+            {isRunning ? "Analyzing…" : "Run Analysis"}
           </button>
         </form>
 
@@ -870,7 +870,7 @@ export function InsightsView({ demoTrigger }: InsightsViewProps) {
                   Individual Responses
                   <span className="ml-2 text-[12px] font-normal text-[#52525b]">
                     {responses.length}
-                    {stage === "querying" ? "\u2026" : ""}
+                    {stage === "querying" ? "…" : ""}
                   </span>
                 </h3>
                 <div className="space-y-3">

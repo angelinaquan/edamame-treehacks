@@ -120,7 +120,7 @@ function MemoryPanel({
                       }`}
                     >
                       {entry.status === "extracting"
-                        ? "Extracting\u2026"
+                        ? "Extracting…"
                         : "Stored"}
                     </span>
                     <span className="ml-auto text-[9px] text-[#52525b]">
@@ -445,7 +445,7 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
         setMemoryEntries((prev) => [
           {
             id: extractingId,
-            fact: `Learning from: "${question.slice(0, 100)}${question.length > 100 ? "\u2026" : ""}"`,
+            fact: `Learning from: "${question.slice(0, 100)}${question.length > 100 ? "…" : ""}"`,
             source: "conversation",
             timestamp: new Date().toISOString(),
             status: "extracting",
@@ -763,7 +763,7 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
                   handleSubmit();
                 }
               }}
-              placeholder="Ask your twin a question\u2026"
+              placeholder="Ask your twin a question…"
               rows={1}
               className="max-h-32 min-h-[40px] flex-1 resize-none rounded-xl border border-[#1e1e22] bg-[#131316] px-4 py-2.5 text-[13px] text-[#ededed] placeholder:text-[#52525b] focus:border-[#2a2a2e] focus:bg-[#19191d] focus:outline-none focus:ring-1 focus:ring-[#2a2a2e]"
             />
@@ -788,7 +788,7 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
               >
                 {audioDevices.map((d) => (
                   <option key={d.deviceId} value={d.deviceId}>
-                    {d.label || `Mic ${d.deviceId.slice(0, 8)}\u2026`}
+                    {d.label || `Mic ${d.deviceId.slice(0, 8)}…`}
                   </option>
                 ))}
               </select>
@@ -818,13 +818,13 @@ export function EmployeeChatView({ demoTrigger }: EmployeeChatViewProps) {
             </button>
             <p className="text-[12px] text-[#71717a]">
               {isPlayingAudio
-                ? "Speaking\u2026"
+                ? "Speaking…"
                 : isRecording
-                ? "Recording\u2026 tap to stop"
+                ? "Recording… tap to stop"
                 : isTranscribing
-                ? "Transcribing\u2026"
+                ? "Transcribing…"
                 : isStreaming
-                ? "Twin is responding\u2026"
+                ? "Twin is responding…"
                 : "Tap to speak"}
             </p>
           </div>

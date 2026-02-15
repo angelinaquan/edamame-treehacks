@@ -160,7 +160,7 @@ function OnboardingTab({ autoTrigger }: { autoTrigger: number }) {
               }}
               className="w-full rounded-lg border border-[#1e1e22] bg-[#131316] px-3 py-2 text-[13px] text-[#ededed] focus:border-[#2a2a2e] focus:outline-none focus:ring-1 focus:ring-[#2a2a2e]"
             >
-              <option value="">Select role\u2026</option>
+              <option value="">Select role…</option>
               {options.map((o) => (
                 <option key={o.role} value={o.role}>
                   {o.role}
@@ -199,7 +199,7 @@ function OnboardingTab({ autoTrigger }: { autoTrigger: number }) {
         <div className="flex items-center justify-center py-16">
           <div className="flex items-center gap-3 text-[13px] text-[#71717a]">
             <Loader2 size={18} className="animate-spin text-[#c4b5a0]" />
-            Generating onboarding brief\u2026
+            Generating onboarding brief…
           </div>
         </div>
       )}
@@ -451,7 +451,7 @@ function MemoryTab() {
                   setQuery(e.target.value);
                   doSearch(e.target.value, typeFilter);
                 }}
-                placeholder="Search organizational memory\u2026"
+                placeholder="Search organizational memory…"
                 className="w-full rounded-lg border border-[#1e1e22] bg-[#131316] py-2 pl-9 pr-3 text-[13px] text-[#ededed] placeholder:text-[#52525b] focus:border-[#2a2a2e] focus:outline-none focus:ring-1 focus:ring-[#2a2a2e]"
               />
             </div>
@@ -490,7 +490,7 @@ function MemoryTab() {
           {loading ? (
             <div className="flex items-center justify-center py-12 text-[13px] text-[#52525b]">
               <Loader2 size={16} className="mr-2 animate-spin" />
-              Searching\u2026
+              Searching…
             </div>
           ) : results.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -522,7 +522,7 @@ function MemoryTab() {
                     </span>
                   </div>
                   <p className="mb-1.5 line-clamp-2 text-[12px] leading-relaxed text-[#71717a]">
-                    {item.content.slice(0, 120)}\u2026
+                    {item.content.slice(0, 120)}…
                   </p>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-[#52525b]">
@@ -730,7 +730,7 @@ function OffboardingTab({ autoTrigger }: { autoTrigger: number }) {
         <div className="flex items-center justify-center py-16">
           <div className="flex items-center gap-3 text-[13px] text-[#71717a]">
             <Loader2 size={18} className="animate-spin text-[#c4b5a0]" />
-            Generating handoff pack\u2026
+            Generating handoff pack…
           </div>
         </div>
       )}

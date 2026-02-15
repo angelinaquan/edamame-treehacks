@@ -399,7 +399,7 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search people\u2026"
+              placeholder="Search people…"
               className="w-full rounded-md border border-[#1e1e22] bg-[#131316] py-1.5 pl-8 pr-3 text-[12.5px] text-[#ededed] placeholder:text-[#52525b] focus:border-[#2a2a2e] focus:outline-none focus:ring-1 focus:ring-[#2a2a2e]"
             />
           </div>
@@ -602,7 +602,7 @@ export function ClonesView({ demoTrigger }: ClonesViewProps) {
                       handleSubmit();
                     }
                   }}
-                  placeholder={`Ask ${selectedProfile.employee.name.split(" ")[0]} a question\u2026`}
+                  placeholder={`Ask ${selectedProfile.employee.name.split(" ")[0]} a question…`}
                   rows={1}
                   className="max-h-32 min-h-[40px] flex-1 resize-none rounded-xl border border-[#1e1e22] bg-[#131316] px-4 py-2.5 text-[13px] text-[#ededed] placeholder:text-[#52525b] focus:border-[#2a2a2e] focus:bg-[#19191d] focus:outline-none focus:ring-1 focus:ring-[#2a2a2e]"
                 />
