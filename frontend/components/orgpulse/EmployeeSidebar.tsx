@@ -4,12 +4,13 @@ import {
   BookOpen,
   Sparkles,
   MessageSquare,
+  Users,
   Settings,
   Zap,
   LogOut,
 } from "lucide-react";
 
-export type EmployeeView = "chat" | "knowledge";
+export type EmployeeView = "chat" | "coworkers" | "knowledge";
 
 interface EmployeeSidebarProps {
   activeView: EmployeeView;
@@ -22,6 +23,11 @@ const navItems: { id: EmployeeView; label: string; icon: React.ReactNode }[] = [
     id: "chat",
     label: "My Twin Clone",
     icon: <MessageSquare size={18} />,
+  },
+  {
+    id: "coworkers",
+    label: "Coworker Twins",
+    icon: <Users size={18} />,
   },
   {
     id: "knowledge",
