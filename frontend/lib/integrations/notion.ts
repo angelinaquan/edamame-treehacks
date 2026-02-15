@@ -1,7 +1,7 @@
 import { Client } from "@notionhq/client";
-import { chunkText } from "@/lib/chunker";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getNotionApiKey } from "@/lib/credentials";
+import { chunkText } from "@/lib/core/chunker";
+import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { getNotionApiKey } from "./credentials";
 
 interface NotionSearchPage {
   id: string;

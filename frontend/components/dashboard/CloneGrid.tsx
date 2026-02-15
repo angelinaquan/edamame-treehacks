@@ -1,7 +1,7 @@
 "use client";
 
 import { CloneCard } from "./CloneCard";
-import type { Clone } from "@/lib/types";
+import type { Clone } from "@/lib/core/types";
 
 interface CloneGridProps {
   clones: (Clone & {

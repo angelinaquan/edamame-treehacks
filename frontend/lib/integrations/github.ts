@@ -1,7 +1,7 @@
 import { Octokit } from "@octokit/rest";
-import { chunkText } from "@/lib/chunker";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getGitHubToken } from "@/lib/credentials";
+import { chunkText } from "@/lib/core/chunker";
+import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { getGitHubToken } from "./credentials";
 
 export interface GitHubRepoSummary {
   id: number;

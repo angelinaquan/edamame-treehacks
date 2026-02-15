@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient } from "@/lib/core/supabase/server";
 
 type IntegrationProvider =
   | "slack"

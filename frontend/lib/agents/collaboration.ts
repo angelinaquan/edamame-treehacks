@@ -1,6 +1,6 @@
-import type { Clone, CloneConsultation } from "./types";
-import { mockClones, mockMemories } from "./mock-data";
-import { buildSystemPrompt } from "./agent";
+import type { Clone, CloneConsultation } from "@/lib/core/types";
+import { mockClones, mockMemories } from "@/lib/memory/mock-data";
+import { buildSystemPrompt } from "./clone-brain";
 
 const MAX_HOPS = 2;
 const MAX_CONSULTS_PER_QUESTION = 3;

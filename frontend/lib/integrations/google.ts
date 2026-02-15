@@ -1,7 +1,7 @@
 import { google, drive_v3, gmail_v1 } from "googleapis";
-import { chunkText } from "@/lib/chunker";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getGoogleDriveCredentials, getGoogleOAuthTokens } from "@/lib/credentials";
+import { chunkText } from "@/lib/core/chunker";
+import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { getGoogleDriveCredentials, getGoogleOAuthTokens } from "./credentials";
 import type { OAuth2Client } from "google-auth-library";
 
 export interface GoogleDriveFileSnapshot {

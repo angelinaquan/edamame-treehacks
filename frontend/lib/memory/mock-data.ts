@@ -5,7 +5,7 @@ import type {
   ProactiveReminder,
   Memory,
   Document,
-} from "./types";
+} from "@/lib/core/types";
 
 // ============================================
 // PEOPLE / USERS

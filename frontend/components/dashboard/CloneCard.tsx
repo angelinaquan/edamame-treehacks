@@ -1,7 +1,7 @@
 "use client";
 
 import { MessageSquare, Zap, Clock } from "lucide-react";
-import type { Clone } from "@/lib/types";
+import type { Clone } from "@/lib/core/types";
 import Link from "next/link";
 
 interface CloneCardProps {

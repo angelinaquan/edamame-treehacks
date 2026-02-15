@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getActiveCloneId } from "@/lib/credentials";
-import { syncGitHubContextToSupabase } from "@/lib/github";
-import { syncNotionContextToSupabase } from "@/lib/notion";
-import { syncGoogleDriveContextToSupabase, syncGmailToSupabase } from "@/lib/google";
-import { syncSlackContextToSupabase } from "@/lib/slack";
+import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { getActiveCloneId } from "@/lib/integrations/credentials";
+import { syncGitHubContextToSupabase } from "@/lib/integrations/github";
+import { syncNotionContextToSupabase } from "@/lib/integrations/notion";
+import { syncGoogleDriveContextToSupabase, syncGmailToSupabase } from "@/lib/integrations/google";
+import { syncSlackContextToSupabase } from "@/lib/integrations/slack";
 
 type IntegrationProvider =
   | "slack"

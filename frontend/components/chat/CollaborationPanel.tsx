@@ -1,7 +1,7 @@
 "use client";
 
 import { Users, ArrowRight } from "lucide-react";
-import type { CloneConsultation } from "@/lib/types";
+import type { CloneConsultation } from "@/lib/core/types";
 
 interface CollaborationPanelProps {
   consultations: CloneConsultation[];

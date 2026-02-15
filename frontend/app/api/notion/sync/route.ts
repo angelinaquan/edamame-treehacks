@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { syncNotionContextToSupabase } from "@/lib/notion";
-import { getActiveCloneId } from "@/lib/credentials";
+import { syncNotionContextToSupabase } from "@/lib/integrations/notion";
+import { getActiveCloneId } from "@/lib/integrations/credentials";
 
 interface SyncRequestBody {
   cloneId?: string;

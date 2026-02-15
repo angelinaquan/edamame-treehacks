@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { syncSlackContextToSupabase } from "@/lib/slack";
-import { getActiveCloneId } from "@/lib/credentials";
+import { syncSlackContextToSupabase } from "@/lib/integrations/slack";
+import { getActiveCloneId } from "@/lib/integrations/credentials";
 
 interface SyncRequestBody {
   cloneId?: string;

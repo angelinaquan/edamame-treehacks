@@ -1,6 +1,6 @@
-import { chunkText } from "@/lib/chunker";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSlackBotToken } from "@/lib/credentials";
+import { chunkText } from "@/lib/core/chunker";
+import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { getSlackBotToken } from "./credentials";
 
 /* ---------- Types ---------- */
 

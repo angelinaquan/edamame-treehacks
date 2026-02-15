@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { syncGmailToSupabase } from "@/lib/google";
-import { getActiveCloneId } from "@/lib/credentials";
+import { syncGmailToSupabase } from "@/lib/integrations/google";
+import { getActiveCloneId } from "@/lib/integrations/credentials";
 
 interface SyncRequestBody {
   cloneId?: string;

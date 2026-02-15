@@ -1,4 +1,4 @@
-import type { Memory, Chunk } from "./types";
+import type { Memory, Chunk } from "@/lib/core/types";
 import { mockMemories, mockDocuments } from "./mock-data";
 
 export function searchKnowledgeBase(

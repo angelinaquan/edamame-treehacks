@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { syncGitHubContextToSupabase } from "@/lib/github";
-import { getActiveCloneId, getGitHubUsername } from "@/lib/credentials";
+import { syncGitHubContextToSupabase } from "@/lib/integrations/github";
+import { getActiveCloneId, getGitHubUsername } from "@/lib/integrations/credentials";
 
 interface SyncRequestBody {
   cloneId?: string;

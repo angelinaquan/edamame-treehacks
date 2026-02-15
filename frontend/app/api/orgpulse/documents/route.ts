@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient } from "@/lib/core/supabase/server";
 
 /**
  * GET /api/orgpulse/documents?q=search&type=all|email|google_drive_file|slack_message|notion_page

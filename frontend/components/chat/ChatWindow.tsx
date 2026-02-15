@@ -6,7 +6,7 @@ import { ChatInput } from "./ChatInput";
 import { ThinkingPanel } from "./ThinkingPanel";
 import { CollaborationPanel } from "./CollaborationPanel";
 import { NotificationBanner } from "./NotificationBanner";
-import type { Message, CloneConsultation } from "@/lib/types";
+import type { Message, CloneConsultation } from "@/lib/core/types";
 
 interface ChatWindowProps {
   cloneId?: string;

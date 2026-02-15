@@ -1,7 +1,7 @@
 "use client";
 
 import ReactMarkdown from "react-markdown";
-import type { Message } from "@/lib/types";
+import type { Message } from "@/lib/core/types";
 
 interface MessageBubbleProps {
   message: Message;

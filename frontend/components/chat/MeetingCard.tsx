@@ -7,7 +7,7 @@ import {
   CheckCircle2,
   Clock,
 } from "lucide-react";
-import type { Meeting } from "@/lib/types";
+import type { Meeting } from "@/lib/core/types";
 
 interface MeetingCardProps {
   meeting: Meeting;

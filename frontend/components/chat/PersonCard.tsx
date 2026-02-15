@@ -1,7 +1,7 @@
 "use client";
 
 import { Briefcase, MessageCircle, Star } from "lucide-react";
-import type { PersonContext } from "@/lib/types";
+import type { PersonContext } from "@/lib/core/types";
 
 interface PersonCardProps {
   person: PersonContext;

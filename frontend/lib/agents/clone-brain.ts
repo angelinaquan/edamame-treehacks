@@ -4,8 +4,8 @@ import {
   mockPeople,
   mockMemories,
   mockSlackMessages,
-} from "./mock-data";
-import type { Clone, Message } from "./types";
+} from "@/lib/memory/mock-data";
+import type { Clone, Message } from "@/lib/core/types";
 
 export function buildSystemPrompt(clone: Clone): string {
   const cloneOwner = mockPeople.find((p) => p.id === clone.owner_id);
