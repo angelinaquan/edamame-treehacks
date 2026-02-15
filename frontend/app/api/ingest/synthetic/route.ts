@@ -6,6 +6,7 @@ import { validateSyntheticResources } from "@backend/memory/synthetic/validate";
 import { getMemoryProvider, isSupabaseConfigured } from "@backend/memory/flags";
 import { syncResourcesToMem0 } from "@backend/memory/mem0";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { attachEmbeddingsToMemoryRows } from "@/lib/memory/embeddings";
 import type {
   MemoryResourceInput,
   SyntheticGenerationOptions,
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
       type: string;
       source: string;
       content: string;
+      embedding?: number[] | null;
       confidence: number;
       metadata: Record<string, unknown>;
       occurred_at: string;
@@ -268,9 +270,10 @@ export async function POST(request: NextRequest) {
     });
 
     // Batch insert all memories
+    const rowsWithEmbeddings = await attachEmbeddingsToMemoryRows(allMemoryRows);
     const { error: insertError } = await supabase
       .from("memories")
-      .insert(allMemoryRows);
+      .insert(rowsWithEmbeddings);
 
     if (insertError) {
       throw new Error(insertError.message);

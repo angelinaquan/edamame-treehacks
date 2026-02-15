@@ -1,6 +1,7 @@
 import { google, drive_v3, gmail_v1 } from "googleapis";
 import { chunkText } from "@/lib/core/chunker";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { attachEmbeddingsToMemoryRows } from "@/lib/memory/embeddings";
 import { getGoogleDriveCredentials, getGoogleOAuthTokens } from "./credentials";
 import type { OAuth2Client } from "google-auth-library";
 
@@ -251,6 +252,7 @@ export async function syncGoogleDriveContextToSupabase(opts: {
     type: string;
     source: string;
     content: string;
+    embedding?: number[] | null;
     confidence: number;
     metadata: Record<string, unknown>;
     occurred_at: string;
@@ -312,7 +314,8 @@ export async function syncGoogleDriveContextToSupabase(opts: {
   }
 
   if (memoryRows.length > 0) {
-    const { error } = await supabase.from("memories").insert(memoryRows);
+    const rowsWithEmbeddings = await attachEmbeddingsToMemoryRows(memoryRows);
+    const { error } = await supabase.from("memories").insert(rowsWithEmbeddings);
     if (error) {
       throw new Error(`Failed to save Google Drive memories: ${error.message}`);
     }
@@ -454,6 +457,7 @@ export async function syncGmailToSupabase(opts: {
     type: string;
     source: string;
     content: string;
+    embedding?: number[] | null;
     confidence: number;
     metadata: Record<string, unknown>;
     occurred_at: string;
@@ -513,7 +517,8 @@ export async function syncGmailToSupabase(opts: {
   }
 
   if (memoryRows.length > 0) {
-    const { error } = await supabase.from("memories").insert(memoryRows);
+    const rowsWithEmbeddings = await attachEmbeddingsToMemoryRows(memoryRows);
+    const { error } = await supabase.from("memories").insert(rowsWithEmbeddings);
     if (error) {
       throw new Error(`Failed to save Gmail memories: ${error.message}`);
     }

@@ -1,5 +1,6 @@
 import { chunkText } from "@/lib/core/chunker";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { attachEmbeddingsToMemoryRows } from "@/lib/memory/embeddings";
 import { getSlackBotToken } from "./credentials";
 
 /* ---------- Types ---------- */
@@ -288,6 +289,7 @@ export async function syncSlackContextToSupabase(opts: {
     type: string;
     source: string;
     content: string;
+    embedding?: number[] | null;
     confidence: number;
     metadata: Record<string, unknown>;
     occurred_at: string;
@@ -328,7 +330,8 @@ export async function syncSlackContextToSupabase(opts: {
   }
 
   if (memoryRows.length > 0) {
-    const { error } = await supabase.from("memories").insert(memoryRows);
+    const rowsWithEmbeddings = await attachEmbeddingsToMemoryRows(memoryRows);
+    const { error } = await supabase.from("memories").insert(rowsWithEmbeddings);
     if (error) {
       throw new Error(`Failed to save Slack memories: ${error.message}`);
     }

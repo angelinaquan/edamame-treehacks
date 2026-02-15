@@ -67,6 +67,9 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Optional: external Modal service URL
 # MODAL_BASE_URL=http://localhost:8000
+
+# Optional: protect scheduled sync endpoint
+# MEMORY_SYNC_SECRET=your_shared_secret
 ```
 
 ### 3) Initialize database schema
@@ -115,3 +118,27 @@ From `frontend/`:
 - `MEMORY_PROVIDER=supabase`: reads/writes memory in Supabase (recommended default).
 - `MEMORY_PROVIDER=mem0`: routes memory context lookups through Mem0 when configured.
 - If Mem0 fails at runtime, code attempts Supabase fallback when `USE_SUPABASE_MEMORY=true` and Supabase credentials are available.
+
+## Scheduled Sync (Optional)
+
+Use `GET` or `POST /api/memory/scheduled-sync` to run integration sync and optional memory compaction on a schedule (for example from Vercel Cron, GitHub Actions, or an external scheduler).
+
+Recommended:
+
+- Set `MEMORY_SYNC_SECRET` in `frontend/.env.local`.
+- Send it as `x-memory-sync-secret` header or `secret` query parameter.
+
+Example `GET`:
+
+```bash
+curl "http://localhost:3000/api/memory/scheduled-sync?providers=slack,github,notion,google_drive,gmail&runCompaction=true&compactionMode=weekly&secret=YOUR_SECRET"
+```
+
+Example `POST`:
+
+```bash
+curl -X POST http://localhost:3000/api/memory/scheduled-sync \
+  -H "Content-Type: application/json" \
+  -H "x-memory-sync-secret: YOUR_SECRET" \
+  -d '{"providers":["slack","github","notion","google_drive","gmail"],"runCompaction":true,"compactionMode":"weekly"}'
+```

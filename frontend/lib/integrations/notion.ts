@@ -1,6 +1,7 @@
 import { Client } from "@notionhq/client";
 import { chunkText } from "@/lib/core/chunker";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { attachEmbeddingsToMemoryRows } from "@/lib/memory/embeddings";
 import { getNotionApiKey } from "./credentials";
 
 interface NotionSearchPage {
@@ -224,6 +225,7 @@ export async function syncNotionContextToSupabase(opts: {
     type: string;
     source: string;
     content: string;
+    embedding?: number[] | null;
     confidence: number;
     metadata: Record<string, unknown>;
     occurred_at: string;
@@ -281,7 +283,8 @@ export async function syncNotionContextToSupabase(opts: {
   }
 
   if (memoryRows.length > 0) {
-    const { error } = await supabase.from("memories").insert(memoryRows);
+    const rowsWithEmbeddings = await attachEmbeddingsToMemoryRows(memoryRows);
+    const { error } = await supabase.from("memories").insert(rowsWithEmbeddings);
     if (error) {
       throw new Error(`Failed to save Notion memories: ${error.message}`);
     }

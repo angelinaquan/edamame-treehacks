@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
+import { getKnowledgeContext, writeConversationFacts } from "@backend/memory";
 import OpenAI from "openai";
 
 /**
@@ -13,10 +14,11 @@ import OpenAI from "openai";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { cloneId, question, history } = body as {
+    const { cloneId, question, history, conversationId = "conv_orgpulse" } = body as {
       cloneId: string;
       question: string;
       history?: { role: string; content: string }[];
+      conversationId?: string;
     };
 
     if (!cloneId || !question) {
@@ -47,31 +49,20 @@ export async function POST(request: NextRequest) {
     const personality = clone?.personality as Record<string, unknown> | null;
     const expertise = clone?.expertise_tags ?? [];
 
-    // Fetch relevant chunks (simple keyword search — no vector search for now)
-    const searchTerms = question
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((w) => w.length > 3)
-      .slice(0, 5);
+    // Retrieve clone-scoped context from the shared memory module.
+    const knowledge = await getKnowledgeContext(cloneId, question, 8);
+    let chunks: { content: string; metadata: Record<string, unknown> }[] =
+      (knowledge?.chunks || []).map((chunk) => ({
+        content: chunk.content,
+        metadata: chunk.metadata || {},
+      }));
 
-    let chunks: { content: string; metadata: Record<string, unknown> }[] = [];
-
-    if (searchTerms.length > 0) {
-      const orFilter = searchTerms.map((t) => `content.ilike.%${t}%`).join(",");
-      const { data: chunkData } = await supabase
-        .from("memories")
-        .select("content, metadata")
-        .eq("type", "chunk")
-        .or(orFilter)
-        .limit(10);
-      chunks = (chunkData ?? []) as typeof chunks;
-    }
-
-    // If no keyword matches, get most recent chunks
+    // Fallback: clone-scoped recent chunks if memory provider is unavailable.
     if (chunks.length === 0) {
       const { data: recentChunks } = await supabase
         .from("memories")
         .select("content, metadata")
+        .eq("clone_id", cloneId)
         .eq("type", "chunk")
         .order("created_at", { ascending: false })
         .limit(8);
@@ -149,12 +140,29 @@ ${contextStr || "(No relevant documents found in the knowledge base yet.)"}
     const readable = new ReadableStream({
       async start(controller) {
         try {
+          let assistantResponse = "";
           for await (const chunk of stream) {
             const text = chunk.choices[0]?.delta?.content ?? "";
             if (text) {
+              assistantResponse += text;
               controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify({ type: "chunk", text })}\n\n`)
               );
+            }
+          }
+          if (assistantResponse.trim() && question.trim()) {
+            try {
+              await writeConversationFacts({
+                cloneId,
+                conversationId:
+                  typeof conversationId === "string"
+                    ? conversationId
+                    : "conv_orgpulse",
+                userMessage: question,
+                assistantMessage: assistantResponse,
+              });
+            } catch (writeError) {
+              console.error("Failed to write OrgPulse conversation memory:", writeError);
             }
           }
           // Send citations

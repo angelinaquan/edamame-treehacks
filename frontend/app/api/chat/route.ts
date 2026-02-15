@@ -4,16 +4,18 @@ import { buildSystemPrompt } from "@/lib/agents/clone-brain";
 import { getActiveReminders, mockMeetings } from "@backend/memory/mock-data";
 import { getCloneRuntime } from "@backend/memory/clone-repository";
 import { canConsult, consultClone, listConsultableClones } from "@/lib/agents/collaboration";
-import { getKnowledgeContext } from "@backend/memory";
+import { getKnowledgeContext, writeConversationFacts } from "@backend/memory";
 
 export async function POST(request: NextRequest) {
   try {
     const {
       message,
       cloneId,
+      conversationId = "conv_demo",
       conversationHistory = [],
       isProactiveDebrief = false,
     } = await request.json();
+    const messageText = typeof message === "string" ? message : "";
 
     const runtime = await getCloneRuntime(cloneId);
     const clone = runtime.clone;
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Clone not found" }, { status: 404 });
     }
 
-    const knowledge = await getKnowledgeContext(clone.id, message || "", 5);
+    const knowledge = await getKnowledgeContext(clone.id, messageText, 5);
     const fallbackChunkFacts =
       knowledge?.chunks.slice(0, 5).map((chunk) => `- ${chunk.content}`) || [];
     const systemPrompt = buildSystemPrompt(
@@ -77,6 +79,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    let userPromptForWriteback = messageText;
     if (isProactiveDebrief) {
       const reminders = getActiveReminders();
       const meetingDebrief = reminders.find(
@@ -87,21 +90,21 @@ export async function POST(request: NextRequest) {
           (m) => m.id === meetingDebrief.meeting_id
         );
         if (meeting) {
+          userPromptForWriteback = `Give me a debrief on the meeting: "${meeting.title}". Who was there, what was discussed, key decisions, and what action items need my attention. Be concise and conversational, like you're briefing me while I'm driving.`;
           messages.push({
             role: "user",
-            content: `Give me a debrief on the meeting: "${meeting.title}". Who was there, what was discussed, key decisions, and what action items need my attention. Be concise and conversational, like you're briefing me while I'm driving.`,
+            content: userPromptForWriteback,
           });
         }
       }
     } else {
-      messages.push({ role: "user", content: message });
+      messages.push({ role: "user", content: messageText });
     }
 
     let consultationData: {
       target_clone_name: string;
       response: string;
     } | null = null;
-    const messageText = message || "";
     const otherClones = await listConsultableClones(clone.id);
 
     for (const otherClone of otherClones) {
@@ -142,6 +145,7 @@ export async function POST(request: NextRequest) {
     const readableStream = new ReadableStream({
       async start(controller) {
         try {
+          let assistantResponse = "";
           if (consultationData) {
             controller.enqueue(
               encoder.encode(
@@ -153,11 +157,27 @@ export async function POST(request: NextRequest) {
           for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || "";
             if (content) {
+              assistantResponse += content;
               controller.enqueue(
                 encoder.encode(
                   `data: ${JSON.stringify({ type: "content", content })}\n\n`
                 )
               );
+            }
+          }
+          if (assistantResponse.trim() && userPromptForWriteback.trim()) {
+            try {
+              await writeConversationFacts({
+                cloneId: clone.id,
+                conversationId:
+                  typeof conversationId === "string"
+                    ? conversationId
+                    : "conv_demo",
+                userMessage: userPromptForWriteback,
+                assistantMessage: assistantResponse,
+              });
+            } catch (writeError) {
+              console.error("Failed to write conversation memory:", writeError);
             }
           }
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));

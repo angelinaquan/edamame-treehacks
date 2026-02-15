@@ -5,6 +5,8 @@
  */
 
 import type { Chunk, Memory } from "@/lib/core/types";
+import { generateEmbedding } from "@/lib/agents/openai";
+import { attachEmbeddingsToMemoryRows } from "@/lib/memory/embeddings";
 import { mockMemories, mockDocuments } from "./mock-data";
 import { createServerSupabaseClient } from "@/lib/core/supabase/server";
 import {
@@ -85,6 +87,88 @@ function summarizeLines(lines: string[], maxLines = 3): string {
     .join(" ");
 }
 
+function canUseVectorSearch(): boolean {
+  return Boolean(readRuntimeEnv("OPENAI_API_KEY"));
+}
+
+type VectorMatchRow = {
+  id: string;
+  clone_id: string;
+  type: "fact" | "chunk";
+  source: string;
+  content: string;
+  confidence: number | null;
+  metadata: Record<string, unknown> | null;
+  occurred_at: string;
+  created_at: string;
+  similarity: number | null;
+};
+
+async function searchSupabaseVectorMemory(
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  cloneId: string,
+  query: string,
+  topK: number
+): Promise<
+  | {
+      items: KnowledgeContext["items"];
+      chunks: Chunk[];
+    }
+  | null
+> {
+  if (!canUseVectorSearch()) return null;
+  const normalizedQuery = query.trim();
+  if (!normalizedQuery) return null;
+
+  try {
+    const queryEmbedding = await generateEmbedding(normalizedQuery.slice(0, 6000));
+    const { data, error } = await supabase.rpc("match_memories", {
+      p_clone_id: cloneId,
+      p_query_embedding: queryEmbedding,
+      p_match_count: Math.max(topK * 4, 8),
+      p_types: ["fact", "chunk"],
+    });
+
+    if (error) {
+      console.warn("Vector retrieval unavailable; falling back to keyword search:", error.message);
+      return null;
+    }
+
+    const rows = (data || []) as VectorMatchRow[];
+    if (rows.length === 0) return null;
+
+    const items: KnowledgeContext["items"] = rows
+      .filter((row) => row.type === "fact")
+      .slice(0, topK * 2)
+      .map((row) => ({
+        fact: row.content,
+        confidence: row.confidence ?? 0.5,
+        source_type: row.source,
+        occurred_at: row.occurred_at,
+        category_key: row.metadata?.category_key as string | undefined,
+      }));
+
+    const chunks: Chunk[] = rows
+      .filter((row) => row.type === "chunk")
+      .slice(0, topK * 3)
+      .map((row) => ({
+        id: row.id,
+        clone_id: row.clone_id,
+        content: row.content,
+        metadata: row.metadata || {},
+        created_at: row.created_at,
+      }));
+
+    return {
+      items,
+      chunks,
+    };
+  } catch (error) {
+    console.warn("Vector retrieval failed; falling back to keyword search:", error);
+    return null;
+  }
+}
+
 export function searchKnowledgeBase(
   cloneId: string,
   query: string,
@@ -156,6 +240,146 @@ export function saveFact(
   return memory;
 }
 
+export interface ConversationFactWriteParams {
+  cloneId: string;
+  conversationId?: string;
+  userMessage?: string;
+  assistantMessage?: string;
+  occurredAt?: string;
+  maxFactsPerTurn?: number;
+}
+
+export interface ConversationFactWriteResult {
+  inserted: number;
+  skipped: number;
+}
+
+function normalizeFactText(input: string): string {
+  return input
+    .replace(/\s+/g, " ")
+    .replace(/^[-*]\s+/, "")
+    .trim();
+}
+
+function factKey(input: string): string {
+  return normalizeFactText(input).toLowerCase();
+}
+
+function fallbackFactCandidates(content: string, limit = 2): string[] {
+  return content
+    .split(/[.!?]+/)
+    .map(normalizeFactText)
+    .filter((sentence) => sentence.length >= 28)
+    .slice(0, limit);
+}
+
+function extractConversationFactCandidates(content?: string): string[] {
+  if (!content) return [];
+  const normalized = normalizeFactText(content);
+  if (!normalized) return [];
+
+  const extracted = extractFacts(normalized).map(normalizeFactText).filter(Boolean);
+  if (extracted.length > 0) return extracted;
+  return fallbackFactCandidates(normalized, 2);
+}
+
+export async function writeConversationFacts(
+  params: ConversationFactWriteParams
+): Promise<ConversationFactWriteResult> {
+  if (!isSupabaseConfigured()) {
+    return { inserted: 0, skipped: 0 };
+  }
+
+  const maxFacts = Math.min(Math.max(params.maxFactsPerTurn ?? 8, 1), 20);
+  const occurredAt = params.occurredAt || new Date().toISOString();
+  const conversationId = params.conversationId || `conv_${Date.now()}`;
+
+  const rawCandidates = [
+    ...extractConversationFactCandidates(params.userMessage).map((fact) => ({
+      content: fact,
+      confidence: 0.74,
+      speakerRole: "user" as const,
+    })),
+    ...extractConversationFactCandidates(params.assistantMessage).map((fact) => ({
+      content: fact,
+      confidence: 0.82,
+      speakerRole: "assistant" as const,
+    })),
+  ];
+
+  if (rawCandidates.length === 0) {
+    return { inserted: 0, skipped: 0 };
+  }
+
+  const localSeen = new Set<string>();
+  const localUnique: typeof rawCandidates = [];
+  for (const candidate of rawCandidates) {
+    const key = factKey(candidate.content);
+    if (!key || localSeen.has(key)) continue;
+    localSeen.add(key);
+    localUnique.push(candidate);
+  }
+
+  if (localUnique.length === 0) {
+    return { inserted: 0, skipped: rawCandidates.length };
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data: existingRows } = await supabase
+    .from("memories")
+    .select("content")
+    .eq("clone_id", params.cloneId)
+    .eq("type", "fact")
+    .eq("source", "conversation")
+    .order("created_at", { ascending: false })
+    .limit(400);
+
+  const existingSet = new Set(
+    (existingRows || [])
+      .map((row: { content: string }) => factKey(row.content))
+      .filter(Boolean)
+  );
+
+  const rowsToInsert = localUnique
+    .filter((candidate) => !existingSet.has(factKey(candidate.content)))
+    .slice(0, maxFacts)
+    .map((candidate, index) => ({
+      clone_id: params.cloneId,
+      type: "fact" as const,
+      source: "conversation" as const,
+      content: candidate.content,
+      confidence: candidate.confidence,
+      metadata: {
+        source_conversation_id: conversationId,
+        speaker_role: candidate.speakerRole,
+        capture_method: "post_chat_extraction",
+        category_key: "conversation",
+        compaction_state: "active",
+        sequence: index,
+      },
+      occurred_at: occurredAt,
+      embedding: null as number[] | null,
+    }));
+
+  if (rowsToInsert.length === 0) {
+    return {
+      inserted: 0,
+      skipped: localUnique.length,
+    };
+  }
+
+  const rowsWithEmbeddings = await attachEmbeddingsToMemoryRows(rowsToInsert);
+  const { error } = await supabase.from("memories").insert(rowsWithEmbeddings);
+  if (error) {
+    throw new Error(`Failed to persist conversation facts: ${error.message}`);
+  }
+
+  return {
+    inserted: rowsToInsert.length,
+    skipped: Math.max(localUnique.length - rowsToInsert.length, 0),
+  };
+}
+
 export async function getKnowledgeContext(
   cloneId: string,
   query: string,
@@ -222,8 +446,38 @@ export async function getKnowledgeContext(
     .order("occurred_at", { ascending: false })
     .limit(6);
 
-  const [{ data: categories }, { data: items }, { data: chunks }, { data: resources }] =
-    await Promise.all([categoryQuery, itemQuery, chunkQuery, resourceQuery]);
+  const [vectorMatches, { data: categories }, { data: items }, { data: chunks }, { data: resources }] =
+    await Promise.all([
+      searchSupabaseVectorMemory(supabase, cloneId, query, topK),
+      categoryQuery,
+      itemQuery,
+      chunkQuery,
+      resourceQuery,
+    ]);
+
+  const keywordItems: KnowledgeContext["items"] =
+    items?.map((row: {
+      content: string;
+      confidence: number | null;
+      source: string;
+      occurred_at: string;
+      metadata: Record<string, unknown>;
+    }) => ({
+      fact: row.content,
+      confidence: row.confidence ?? 0.5,
+      source_type: row.source,
+      occurred_at: row.occurred_at,
+      category_key: row.metadata?.category_key as string | undefined,
+    })) || [];
+
+  const finalItems =
+    vectorMatches?.items && vectorMatches.items.length > 0
+      ? vectorMatches.items
+      : keywordItems;
+  const finalChunks =
+    vectorMatches?.chunks && vectorMatches.chunks.length > 0
+      ? vectorMatches.chunks
+      : ((chunks as Chunk[]) || []);
 
   return {
     categories:
@@ -232,21 +486,8 @@ export async function getKnowledgeContext(
         summary: row.content,
         confidence: row.confidence ?? 0.5,
       })) || [],
-    items:
-      items?.map((row: {
-        content: string;
-        confidence: number | null;
-        source: string;
-        occurred_at: string;
-        metadata: Record<string, unknown>;
-      }) => ({
-        fact: row.content,
-        confidence: row.confidence ?? 0.5,
-        source_type: row.source,
-        occurred_at: row.occurred_at,
-        category_key: row.metadata?.category_key as string | undefined,
-      })) || [],
-    chunks: (chunks as Chunk[]) || [],
+    items: finalItems,
+    chunks: finalChunks,
     resources:
       resources?.map((row: {
         source: string;

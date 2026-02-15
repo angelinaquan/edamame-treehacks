@@ -90,3 +90,44 @@ CREATE INDEX idx_memories_embedding ON memories USING ivfflat (embedding vector_
 CREATE INDEX idx_messages_clone_id ON messages(clone_id);
 CREATE INDEX idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX idx_integrations_provider ON integrations(provider);
+
+-- Step 5: Create vector similarity helper function
+CREATE OR REPLACE FUNCTION match_memories(
+  p_clone_id UUID,
+  p_query_embedding VECTOR(1536),
+  p_match_count INT DEFAULT 20,
+  p_types TEXT[] DEFAULT ARRAY['fact', 'chunk']
+)
+RETURNS TABLE (
+  id UUID,
+  clone_id UUID,
+  type TEXT,
+  source TEXT,
+  content TEXT,
+  confidence FLOAT,
+  metadata JSONB,
+  occurred_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ,
+  similarity FLOAT
+)
+LANGUAGE SQL
+STABLE
+AS $$
+  SELECT
+    m.id,
+    m.clone_id,
+    m.type,
+    m.source,
+    m.content,
+    m.confidence,
+    m.metadata,
+    m.occurred_at,
+    m.created_at,
+    (1 - (m.embedding <=> p_query_embedding))::float AS similarity
+  FROM memories m
+  WHERE m.clone_id = p_clone_id
+    AND m.embedding IS NOT NULL
+    AND (p_types IS NULL OR m.type = ANY(p_types))
+  ORDER BY m.embedding <=> p_query_embedding
+  LIMIT GREATEST(p_match_count, 1);
+$$;
