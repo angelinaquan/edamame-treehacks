@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { EmployeeSidebar, type EmployeeView } from "@/components/orgpulse/EmployeeSidebar";
-import { EmployeeChatView } from "@/components/orgpulse/EmployeeChatView";
-import { ClonesView } from "@/components/orgpulse/ClonesView";
-import { KnowledgeView } from "@/components/orgpulse/KnowledgeView";
+import { EmployeeSidebar, type EmployeeView } from "@/components/edamame/EmployeeSidebar";
+import { EmployeeChatView } from "@/components/edamame/EmployeeChatView";
+import { ClonesView } from "@/components/edamame/ClonesView";
+import { KnowledgeView } from "@/components/edamame/KnowledgeView";
 
 export default function EmployeePage() {
   const [activeView, setActiveView] = useState<EmployeeView>("chat");

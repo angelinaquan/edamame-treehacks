@@ -37,8 +37,8 @@ export default function LandingPage() {
     }
     setError("");
     setLoading(true);
-    sessionStorage.setItem("orgpulse_email", trimmed);
-    sessionStorage.setItem("orgpulse_clone_name", EMAIL_TO_CLONE[trimmed] || "");
+    sessionStorage.setItem("edamame_email", trimmed);
+    sessionStorage.setItem("edamame_clone_name", EMAIL_TO_CLONE[trimmed] || "");
     window.location.href = trimmed === CEO_EMAIL ? "/ceo" : "/employee";
   };
 

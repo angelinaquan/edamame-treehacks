@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { CeoSidebar, type CeoView } from "@/components/orgpulse/CeoSidebar";
-import { InsightsView } from "@/components/orgpulse/InsightsView";
-import { ClonesView } from "@/components/orgpulse/ClonesView";
-import { KnowledgeView } from "@/components/orgpulse/KnowledgeView";
+import { CeoSidebar, type CeoView } from "@/components/edamame/CeoSidebar";
+import { InsightsView } from "@/components/edamame/InsightsView";
+import { ClonesView } from "@/components/edamame/ClonesView";
+import { KnowledgeView } from "@/components/edamame/KnowledgeView";
 
 export default function CeoPage() {
   const [activeView, setActiveView] = useState<CeoView>("insights");

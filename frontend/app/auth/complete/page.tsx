@@ -23,8 +23,8 @@ function AuthCompleteContent() {
       return;
     }
 
-    sessionStorage.setItem("orgpulse_email", email);
-    sessionStorage.setItem("orgpulse_clone_name", EMAIL_TO_CLONE[email] || "");
+    sessionStorage.setItem("edamame_email", email);
+    sessionStorage.setItem("edamame_clone_name", EMAIL_TO_CLONE[email] || "");
 
     // Short delay so the user sees the loading state
     const timer = setTimeout(() => {

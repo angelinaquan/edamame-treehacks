@@ -80,7 +80,7 @@ function buildNormalCommit(
       },
       {
         message: `feat(james): clone chat with streaming SSE + citations\n\nClone chat endpoint now streams GPT-4o responses via Server-Sent Events.\nEach response includes source citations (Slack msg, Drive doc, email).\nConversation history maintained (last 10 messages).\n\nOwner: James Liu\nThe "digital twin" experience is actually convincing.`,
-        files: ["app/api/clones/[id]/chat/route.ts", "lib/orgpulse/chat.ts", "lib/orgpulse/api.ts"],
+        files: ["app/api/clones/[id]/chat/route.ts", "lib/edamame/chat.ts", "lib/edamame/api.ts"],
       },
       {
         message: `feat(james): continual learning — clones get smarter over time\n\nAfter each chat, system extracts atomic facts from user messages.\nFacts are embedded and stored as new memories.\nThe clone's knowledge grows with every conversation.\n\nOwner: James Liu\nThis is the demo moment — live knowledge acquisition.`,
@@ -88,7 +88,7 @@ function buildNormalCommit(
       },
       {
         message: `feat(james): CEO insights multi-agent pipeline\n\nStreaming endpoint: /api/insights/stream\nPipeline: plan → query each clone in parallel → aggregate sentiment → extract themes\nEach clone responds with stance + confidence + summary + citations.\n\nOwner: James Liu\nThe multi-clone sentiment analysis is the key differentiator.`,
-        files: ["app/api/insights/stream/route.ts", "lib/orgpulse/insights.ts"],
+        files: ["app/api/insights/stream/route.ts", "lib/edamame/insights.ts"],
       },
       {
         message: `feat(james): synthetic data generation system\n\n6 generators: Slack, Drive, Email, GitHub, Jira, Notion\nSeeded RNG for deterministic output. Volume presets (small/medium/large).\nAll data personalized to team members with realistic hackathon dynamics.\n\nOwner: James Liu`,
@@ -118,19 +118,19 @@ function buildNormalCommit(
     "Angelina Quan": [
       {
         message: `feat(angelina): dark theme UI overhaul (Cursor-inspired)\n\nComplete retheme of all 14+ component files:\n- Dark backgrounds (#0a0a0c), warm beige accents (#c4b5a0)\n- Subtle borders (#1e1e22), muted text hierarchy\n- Cursor dashboard aesthetic (I work there, so I know it well)\n\nOwner: Angelina Quan (Product & Frontend)`,
-        files: ["app/globals.css", "components/orgpulse/EmployeeSidebar.tsx", "components/orgpulse/CeoSidebar.tsx", "components/orgpulse/EmployeeChatView.tsx"],
+        files: ["app/globals.css", "components/edamame/EmployeeSidebar.tsx", "components/edamame/CeoSidebar.tsx", "components/edamame/EmployeeChatView.tsx"],
       },
       {
         message: `feat(angelina): agent network topology visualization\n\nSVG topology graph with 6 agent nodes + bezier curve edges.\nAnimated particles travel between nodes during agent communication.\nGlow effects, pulse animations, dot grid background.\nEvent stream panel with color-coded message log.\n\nOwner: Angelina Quan\nThis is the visual centerpiece of the demo.`,
-        files: ["components/orgpulse/AgentNetworkView.tsx", "components/orgpulse/InsightsView.tsx"],
+        files: ["components/edamame/AgentNetworkView.tsx", "components/edamame/InsightsView.tsx"],
       },
       {
         message: `feat(angelina): employee chat view with memory panel\n\nFull chat interface: message bubbles, streaming indicators,\nagent thinking steps (searching KB → retrieving → consulting → composing).\nMemory panel on the right shows continual learning in real-time.\nText + voice mode toggle.\n\nOwner: Angelina Quan`,
-        files: ["components/orgpulse/EmployeeChatView.tsx", "components/orgpulse/ClonesView.tsx"],
+        files: ["components/edamame/EmployeeChatView.tsx", "components/edamame/ClonesView.tsx"],
       },
       {
         message: `feat(angelina): knowledge base views (onboarding + offboarding + memory explorer)\n\nThree-tab layout: Onboarding briefs, Memory explorer, Offboarding handoffs.\nOnboarding: role/team selector → auto-generated brief.\nMemory: semantic search with type filters (episodic/semantic).\nOffboarding: employee selector → handoff pack with ownership areas.\n\nOwner: Angelina Quan`,
-        files: ["components/orgpulse/KnowledgeView.tsx"],
+        files: ["components/edamame/KnowledgeView.tsx"],
       },
     ],
     // VIDEET — Modal, Whisper, embeddings, voice, pgvector
@@ -164,7 +164,7 @@ function buildNormalCommit(
   const templates = [
     {
       message: `feat: onboarding brief generator\n\nAuto-generates onboarding docs for new hires:\n- Key people to know\n- Recent decisions\n- Risks and landmines\n- Key documents\n\nAll pulled from the memory layer. Actually useful beyond the hackathon.`,
-      files: ["app/api/knowledge/onboarding/route.ts", "lib/orgpulse/onboarding.ts", "components/orgpulse/KnowledgeView.tsx"],
+      files: ["app/api/knowledge/onboarding/route.ts", "lib/edamame/onboarding.ts", "components/edamame/KnowledgeView.tsx"],
     },
     {
       message: `chore: update README with team info and setup instructions\n\nAdded team bios, role assignments, setup guide, and demo instructions.`,

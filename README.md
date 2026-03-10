@@ -26,7 +26,7 @@ Built at TreeHacks 2025.
 │   │   ├── employee/      Employee view (chat, coworkers, knowledge)
 │   │   ├── (app)/         Dashboard, settings, clone management
 │   │   └── api/
-│   │       ├── orgpulse/  Clone chat, insights, onboarding, offboarding
+│   │       ├── edamame/  Clone chat, insights, onboarding, offboarding
 │   │       ├── chat/      General chat endpoint
 │   │       ├── voice/     Whisper transcription + TTS synthesis
 │   │       ├── ingest/    Data ingestion + synthetic generation
@@ -39,7 +39,7 @@ Built at TreeHacks 2025.
 │   │       ├── notion/    Notion sync
 │   │       └── auth/      Google OAuth flow
 │   ├── components/
-│   │   ├── orgpulse/      InsightsView, ClonesView, EmployeeChatView,
+│   │   ├── edamame/      InsightsView, ClonesView, EmployeeChatView,
 │   │   │                  KnowledgeView, AgentNetworkView, Sidebars
 │   │   ├── chat/          ChatWindow, MessageBubble, ThinkingPanel
 │   │   ├── voice/         VoiceButton, Waveform
@@ -51,7 +51,7 @@ Built at TreeHacks 2025.
 │       ├── core/          Types, Supabase client, chunker, utils
 │       ├── integrations/  Slack, Google, GitHub, Notion connectors
 │       ├── memory/        Frontend memory search helpers
-│       └── orgpulse/      OrgPulse API client + types
+│       └── edamame/      Edamame API client + types
 ├── backend/
 │   ├── memory/            Memory system: retrieval, compaction,
 │   │   │                  continual learning, episodic extraction
