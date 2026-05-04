@@ -1,6 +1,6 @@
 # Edamame
 
-**Project site:** https://angelinaquan.github.io/edamame-treehacks/
+**Project site:** https://angelinaquan.github.io/edamame/ (static site is published from the [edamame](https://github.com/angelinaquan/edamame) repo; this repo is the full application source.)
 
 AI clones for organizational memory. Edamame ingests knowledge from Slack, Google Drive, Gmail, GitHub, Notion, and Jira to create digital twin clones of every person in your organization — queryable 24/7 in text or voice, with source citations and continual learning.
 
