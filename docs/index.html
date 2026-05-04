@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edamame — AI Clones for Organizational Memory</title>
+  <meta name="description" content="Edamame creates AI digital twins of every employee, preserving institutional knowledge across Slack, Drive, Gmail, GitHub, Notion, and more." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0c;
+      --surface: #141418;
+      --border: #23232a;
+      --text: #e4e4e7;
+      --text-muted: #888;
+      --emerald: #10b981;
+      --emerald-dim: #065f46;
+      --emerald-glow: rgba(16, 185, 129, 0.12);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--emerald); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ---- NAV ---- */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(10, 10, 12, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--text);
+    }
+    .nav-brand .logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--emerald);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a { color: var(--text-muted); font-size: 14px; font-weight: 500; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    /* ---- HERO ---- */
+    .hero {
+      text-align: center;
+      padding: 100px 0 80px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 28px;
+    }
+    .badge-winner {
+      background: var(--emerald-glow);
+      color: var(--emerald);
+      border: 1px solid var(--emerald-dim);
+    }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 56px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+    .hero h1 .highlight { color: var(--emerald); }
+    .hero p.subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 36px;
+    }
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:hover { transform: translateY(-1px); text-decoration: none; }
+    .btn-primary {
+      background: var(--emerald);
+      color: #fff;
+    }
+    .btn-primary:hover { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3); }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: #444; }
+
+    .coming-soon {
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ---- SECTIONS ---- */
+    section { padding: 80px 0; }
+    section + section { border-top: 1px solid var(--border); }
+
+    .section-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--emerald);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 40px;
+    }
+
+    /* ---- FEATURES GRID ---- */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+    }
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--emerald-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ---- INTEGRATIONS ---- */
+    .integrations-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* ---- TEAM ---- */
+    .team-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .team-member {
+      padding: 16px 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    /* ---- FOOTER ---- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 600px) {
+      .hero { padding: 64px 0 56px; }
+      section { padding: 56px 0; }
+      .nav-links { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <div class="nav-brand">
+      <div class="logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+      </div>
+      Edamame
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#integrations">Integrations</a>
+      <a href="#team">Team</a>
+      <a href="https://github.com/angelinaquan/edamame-treehacks" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container">
+    <a class="badge badge-winner" href="https://devpost.com/software/m-4f2iwy" target="_blank" rel="noopener noreferrer">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      TreeHacks 2026 Winner &mdash; Greylock Best Multi-Turn Agent
+    </a>
+
+    <h1>AI Clones for<br /><span class="highlight">Organizational Memory</span></h1>
+
+    <p class="subtitle">
+      Edamame creates digital twin clones of every person in your organization,
+      so institutional knowledge is always accessible &mdash; even when they're not.
+    </p>
+
+    <div class="hero-buttons">
+      <a class="btn btn-primary" href="https://devpost.com/software/m-4f2iwy" target="_blank" rel="noopener noreferrer">
+        View on Devpost
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+      </a>
+      <a class="btn btn-outline" href="https://github.com/angelinaquan/edamame-treehacks" target="_blank" rel="noopener noreferrer">
+        Source Code
+      </a>
+    </div>
+
+    <p class="coming-soon">Live app coming soon.</p>
+  </div>
+</header>
+
+<section id="features">
+  <div class="container">
+    <p class="section-label">Features</p>
+    <h2 class="section-title">Everything your org's knowledge needs</h2>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>Clone Chat</h3>
+        <p>Talk to any employee's digital twin in text or voice. Each clone has a distinct personality modeled after its person, with inline source citations and continual learning.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        </div>
+        <h3>Management Insights</h3>
+        <p>Ask a strategic question and poll every clone simultaneously. Get per-person stances with confidence scores, evidence, and aggregated themes &mdash; visualized in an animated agent network.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Onboarding Briefs</h3>
+        <p>Auto-generates "here's what you need to know" docs for new hires by querying relevant clones for key people, recent decisions, and open risks.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+        </div>
+        <h3>Offboarding Handoffs</h3>
+        <p>When someone leaves, their clone preserves their knowledge &mdash; ownership areas, unresolved work, key links, and suggested new owners.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
+        </div>
+        <h3>Voice Conversations</h3>
+        <p>Full spoken I/O using Whisper transcription and TTS synthesis. Have natural voice conversations with any clone, anytime.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
+        </div>
+        <h3>Real-Time Learning</h3>
+        <p>Clones learn continuously via live webhooks. Send a Slack message, ask the clone seconds later, and get a cited answer grounded in real data.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="integrations">
+  <div class="container">
+    <p class="section-label">Integrations</p>
+    <h2 class="section-title">Connects to the tools your team already uses</h2>
+
+    <div class="integrations-list">
+      <span class="chip">Slack</span>
+      <span class="chip">Google Drive</span>
+      <span class="chip">Gmail</span>
+      <span class="chip">GitHub</span>
+      <span class="chip">Notion</span>
+      <span class="chip">Jira</span>
+    </div>
+  </div>
+</section>
+
+<section id="tech">
+  <div class="container">
+    <p class="section-label">Built With</p>
+    <h2 class="section-title">Modern stack, built in 12 hours</h2>
+
+    <div class="integrations-list">
+      <span class="chip">Next.js 16</span>
+      <span class="chip">React 19</span>
+      <span class="chip">TypeScript</span>
+      <span class="chip">Tailwind CSS</span>
+      <span class="chip">Supabase + pgvector</span>
+      <span class="chip">GPT-5.3</span>
+      <span class="chip">Whisper</span>
+      <span class="chip">OpenAI TTS</span>
+      <span class="chip">Mem0</span>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <div class="container">
+    <p class="section-label">Team</p>
+    <h2 class="section-title">Built at TreeHacks 2026</h2>
+
+    <div class="team-grid">
+      <div class="team-member">Angelina Quan</div>
+      <div class="team-member">Ella Lan</div>
+      <div class="team-member">James Liu</div>
+      <div class="team-member">Videet Mehta</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>
+      Edamame &copy; 2026 &middot;
+      <a href="https://devpost.com/software/m-4f2iwy" target="_blank" rel="noopener noreferrer">Devpost</a> &middot;
+      <a href="https://github.com/angelinaquan/edamame-treehacks" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
